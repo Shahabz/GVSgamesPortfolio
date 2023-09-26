@@ -1,0 +1,456 @@
+
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whiteboard 2.0</title>
+  <!--<link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>-->
+  <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" crossorigin="anonymous"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <script src="https://unpkg.com/tippy.js@6"></script>
+<style>
+  :root {
+    --tip-color: rgb(50,50,60);
+  }
+  *:focus {
+    outline: none;
+  }
+
+  html, body {
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    font-family: 'Open Sans', sans-serif;
+  }
+
+  main {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #canvas {
+    
+  }
+
+  #tools {
+    width: 100%;
+    height: 50px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    background-color: #DDD;
+    display: flex;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+
+  .tool, .option {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .tool:hover:not(.tool-selected), .option:hover {
+    background-color: rgba( 85, 85, 85, 0.3);
+    /*text-shadow: 3px 3px #555;*/
+    transform: scale(1.2);
+  }
+
+  .tool, .option > i {
+    font-size: 1.5em;
+  }
+
+  .tool-selected {
+    background-color: #555;
+    color: white;
+  }
+
+  /*#color-selector {
+    border: 3px solid #000;
+  }*/
+
+  .pane {
+    position: absolute;
+    top: 100%;
+    height: 50vh;
+    width: 100%;
+    max-width: 500px;
+    left: 0%;
+    background-color: #EEE;
+    transition: top .3s ease;
+  }
+
+  .open {
+    top: 50% !important;
+  }
+
+  .picker-titlebar {
+    width: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .picker-titlebar > h2 {
+    margin-left: auto;
+  }
+
+  .close-picker {
+    font-size: 2em;
+    cursor: pointer;
+    display: inline-block;
+    margin-left: auto;
+    margin-right: 10px;
+  }
+
+  #sliders-wrapper {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 5fr;
+    grid-row-gap: 20px; 
+  }
+
+  #sliders-wrapper > input {
+    box-sizing: border-box;
+    margin-right: 20px;
+  }
+  #sliders-wrapper > span {
+    font-weight: 900;
+    font-family: 'Pacifico';
+    text-align: center;
+  }
+
+  .slider {
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+    height: 25px;
+    background: #d3d3d3;
+    border-radius: 30px;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: 0.2s;
+    transition: opacity 0.2s;
+  }
+  .slider:hover {
+    opacity: 1;
+  }
+  /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 25px;
+    height: 25px;
+    background: var(--tip-color);/*#04AA6D*/
+    cursor: pointer;
+    border-radius: 50%;
+  }
+
+  .slider::-moz-range-thumb {
+    width: 30px;
+    height: 30px;
+    background: var(--tip-color);
+    cursor: pointer;
+    border-radius: 50%;
+  }
+
+  .slider.r::-webkit-slider-thumb {
+    background: red;
+  }
+
+  .slider.g::-webkit-slider-thumb {
+    background: green;
+  }
+
+  .slider.b::-webkit-slider-thumb {
+    background: blue;
+  }
+
+  .slider.r::-moz-range-thumb {
+    background: red;
+  }
+
+  .slider.g::-moz-range-thumb {
+    background: green;
+  }
+
+  .slider.b::-moz-range-thumb {
+    background: blue;
+  }
+
+
+</style>
+
+</head>
+<body>
+
+<main>
+  <div id="canvas"></div>
+  <div id="tools">
+    <div class="tool tool-selected" data-tooltip-content="Brush"><i class="far fa-paint-brush"></i></div>
+    <div class="tool" data-tooltip-content="Rectangle"><i class="far fa-square-full"></i></div>
+    <div class="tool"data-tooltip-content="Circle"><i class="far fa-circle"></i></div>
+    <div class="tool"data-tooltip-content="Triangle"><i class="far fa-triangle"></i></div>
+    <div class="tool" data-tooltip-content="Eraser"><i class="far fa-eraser"></i></div>
+    
+    <div class="option" data-tooltip-content="Tip Size" id="size-selector"><i class="far fa-sliders-h"></i></div>
+    <div class="option" data-tooltip-content="Color" id="color-selector"><i class="far fa-palette"></i></div>
+    <div class="option" data-tooltip-content="Download Whiteboard" id="download"><i class="far fa-cloud-download-alt"></i></div>
+    <div class="option" data-tooltip-content="Clear Board" id="clear"><i class="far fa-trash-alt"></i></div>
+    
+  </div>
+</main>
+
+<div id="color-picker" class="pane">
+  
+  <div class="picker-titlebar">
+    <h2>Choose a color</h2>
+    <i class="far fa-times close-picker" id="close-color-picker"></i>  
+  </div>
+  
+  <div id="sliders-wrapper">
+  <span>R</span>
+  <input type="range" class="color-range slider r" value="50" min="0" max="255">
+  <span>G</span>
+  <input type="range" class="color-range slider g" value="50" min="0" max="255">
+  <span>B</span>
+  <input type="range" class="color-range slider b" value="60" min="0" max="255">
+  </div>
+  
+</div>
+
+<div id="size-picker" class="pane">
+  
+  <div class="picker-titlebar">
+    <h2>Settings</h2>
+    <i class="far fa-times close-picker" id="close-size-picker"></i>  
+  </div>
+  
+  <div id="sliders-wrapper">
+    <span>Tip Size</span>
+    <input class="slider" type="range" value="10" min="1" max="255" id="radius-range">
+  </div>
+  
+</div>
+  <script src='https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.3/p5.min.js'></script>
+  <script>
+    /*** GUI ***/
+    var tool = 0 
+    var tools = document.querySelectorAll(".tool");
+    var drawColor = null;
+    var radius = 10;
+    downloadName = "drawing.png";
+    setColor([50, 50, 60]);
+    // https://atomiks.github.io/tippyjs
+    tippy('.tool, .option', {
+      content: (reference) => reference.getAttribute('data-tooltip-content'),
+      hideOnClick: true,
+      moveTransition: 'transform 0.2s ease-out',
+      onClickOutside(instance, event) {
+        instance.hide();
+      },
+    })
+
+    for (var i = 0; i < tools.length; i++) {
+      tools[i].onclick = function (id) {
+        return function () {
+          setTool(id);
+        }
+      }(i)
+    }
+
+    function setTool(id) {
+      tool = id
+      for (var i = 0; i < tools.length; i++) {
+        tools[i].classList.remove("tool-selected");
+        if (id == i)
+          tools[i].classList.add("tool-selected");
+      }
+    }
+
+    function setColor(c) {
+      drawColor = c;
+      var compiledColor = 'rgb(' +
+        drawColor[0] + ',' +
+        drawColor[1] + ',' +
+        drawColor[2] +
+        ')';
+      document.querySelector('#color-selector').style.backgroundColor = compiledColor;
+      document.querySelector('#color-picker').style.backgroundColor = compiledColor;
+        document.documentElement.style.setProperty('--tip-color', compiledColor);
+      if ((drawColor[0] + drawColor[1] + drawColor[2]) / 3 < 122) {
+        document.querySelector('#color-picker').style.color = 'white';
+        document.querySelector('#color-selector').style.color = 'white';
+      } else {
+        document.querySelector('#color-picker').style.color = 'black';
+        document.querySelector('#color-selector').style.color = 'black';
+      }
+    }
+
+    document.onwheel = function (e) {
+      if (e.deltaY < 0 && radius <= 255)
+        radius+=2;
+      if (e.deltaY > 0 && radius >= 1)
+        radius-=2;
+    }
+
+    document.querySelector("#download").onclick = function () {
+      graphic.save(downloadName);
+    }
+    document.querySelector("#clear").onclick = function () {
+      graphic.clear();
+    }
+    document.querySelector("#color-selector").onclick = function () {
+      document.querySelector("#color-picker").classList.add("open");
+    }
+    document.querySelector("#close-color-picker").onclick = function () {
+      document.querySelector("#color-picker").classList.remove("open");
+    }
+    document.querySelector("#size-selector").onclick = function () {
+      document.querySelector("#size-picker").classList.add("open");
+    }
+    document.querySelector("#close-size-picker").onclick = function () {
+      document.querySelector("#size-picker").classList.remove("open");
+    }
+    for (var range of document.querySelectorAll(".color-range")) {
+      range.oninput = refreshColorPicker;
+    }
+    document.querySelector("#radius-range").oninput = refreshRadius;
+    function refreshColorPicker() {
+      n = [0, 0, 0]
+      for (var i = 0; i < document.querySelectorAll(".color-range").length; i++) {
+        n[i] = parseInt(document.querySelectorAll(".color-range")[i].value);
+      }
+      setColor(n);
+    }
+    function refreshRadius() {
+      radius = parseInt(document.querySelector("#radius-range").value);
+    }
+    /*** Drawing ***/
+    var lastPoint = null;
+    var graphic = null;
+
+    var squareOrigin = null;
+    var circleOrigin = null;
+    var triangleOrigin = null;
+    //triangle(x1, y1, x2, y2, x3, y3)
+    //https://p5js.org/reference/#/p5/triangle
+
+    function setup() {
+      createCanvas(document.body.clientWidth, document.body.clientHeight - 50).parent("#canvas");
+      ellipseMode(CENTER);
+      graphic = createGraphics(document.body.clientWidth, document.body.clientHeight - 50);
+      graphic.background(255);
+    }
+
+    function draw() {
+      background(255);
+      image(graphic, 0, 0);
+      
+      if (tool == 0 || tool == 4)
+        tool0Preview();
+      
+      if (mouseIsPressed) {
+        if (!document.querySelector("#color-picker").classList.contains("open") && !document.querySelector("#size-picker").classList.contains("open"))
+          drawOnGraphic();
+      } else {
+        lastPoint = null;
+        onMouseQuit();
+      }
+     
+    }
+
+    function tool0Preview()
+    {
+      noFill();
+      stroke(200);
+      strokeWeight(2);
+      ellipse(mouseX, mouseY, radius, radius);
+    }
+
+    function drawOnGraphic() {
+      if (lastPoint == null)
+        lastPoint = [mouseX, mouseY];
+      
+      if (tool == 0) {
+        graphic.noFill();
+        graphic.stroke(drawColor);
+        graphic.strokeWeight(radius);
+        graphic.line(mouseX, mouseY, lastPoint[0], lastPoint[1]);
+      }
+      
+      if (tool == 1) {
+        if (squareOrigin == null) {
+          squareOrigin = [mouseX, mouseY];
+        } else {
+          fill([drawColor[0], drawColor[1], drawColor[2], 122]);
+          noStroke();
+          rect(squareOrigin[0], squareOrigin[1], mouseX - squareOrigin[0], mouseY - squareOrigin[1]);
+        }
+      }
+      
+      if (tool == 2) {
+        if (circleOrigin == null) {
+          circleOrigin = [mouseX, mouseY];
+        } else {
+          fill([drawColor[0], drawColor[1], drawColor[2], 122]);
+          noStroke();
+          let d = createVector(mouseX - circleOrigin[0], mouseY - circleOrigin[1]).mag();
+          ellipseMode(CENTER);
+          ellipse(circleOrigin[0], circleOrigin[1], d * 2, d * 2);
+        }
+      }
+
+      if (tool == 3) {
+        if (triangleOrigin == null) {
+          triangleOrigin = [mouseX, mouseY];
+        } else {
+          fill([drawColor[0], drawColor[1], drawColor[2], 122]);
+          noStroke();
+          triangle(triangleOrigin[0], triangleOrigin[1], triangleOrigin[0] + mouseX, triangleOrigin[1], triangleOrigin[0] + mouseX / 2, triangleOrigin[1] - mouseX * sqrt(3) / 2);
+          //triangle(x1, y1, x2, y2, x3, y3)
+        }
+      }
+       
+      if (tool == 4) {
+        graphic.noFill();
+        graphic.stroke(255);
+        graphic.strokeWeight(radius);
+        graphic.line(mouseX, mouseY, lastPoint[0], lastPoint[1]);
+      }
+      
+      lastPoint = [mouseX, mouseY];
+    }
+
+    function onMouseQuit() {
+      if (squareOrigin != null) {
+          graphic.fill(drawColor);
+          graphic.noStroke();
+          graphic.rect(squareOrigin[0], squareOrigin[1], mouseX - squareOrigin[0], mouseY - squareOrigin[1]);
+          squareOrigin = null;
+      }
+      if (circleOrigin != null) {
+        graphic.fill(drawColor);
+        graphic.noStroke();
+        let d = createVector(mouseX - circleOrigin[0], mouseY - circleOrigin[1]).mag();
+        graphic.ellipseMode(CENTER);
+        graphic.ellipse(circleOrigin[0], circleOrigin[1], d * 2, d * 2);
+        circleOrigin = null;
+      }
+      if (triangleOrigin != null) {
+          graphic.fill(drawColor);
+          graphic.noStroke();
+          graphic.triangle(triangleOrigin[0], triangleOrigin[1], triangleOrigin[0] + mouseX, triangleOrigin[1], triangleOrigin[0] + mouseX / 2, triangleOrigin[1] - mouseX * sqrt(3) / 2);
+          triangleOrigin = null;
+      }
+    }
+  </script>
+</body>
+</html>

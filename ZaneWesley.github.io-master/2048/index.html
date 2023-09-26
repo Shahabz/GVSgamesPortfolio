@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=0">
+  <meta name="author" content="Zane Wesley">
+  <!-- General -->
+  <meta name="theme-color" content="#ffffff">
+  <meta name="application-name" content="2048">
+  <link rel="shortcut icon" href="icon.png">
+  <link rel="icon" type="image/png" sizes="500x500" href="icon.png">
+  <link href="style/main.css" rel="stylesheet" type="text/css">
+  <!-- Apple -->
+  <meta name="apple-mobile-web-app-title" content="2048">
+  <meta name="apple-mobile-web-app-status-bar-style" content="#ffffff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="apple-touch-icon" sizes="500x500" href="icon.png">
+  <link rel="mask-icon" href="icon.png" color="#ffffff">
+  <!-- styles -->
+  <link rel="stylesheet" href="style/themes.css">
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YEEGMG5QT7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-YEEGMG5QT7');
+  </script>
+
+  <title>2048</title>
+</head>
+<body>
+
+  <div class="store-wrapper"><div class="game-store">Game Store</div></div>
+    <div class="coin-wrapper"><div class="coin-container">0</div></div>
+
+  <div class="container">
+    <div class="heading">
+      <h1 class="title">2048</h1>
+      <div class="scores-container">
+        <div class="score-container">0</div>
+        <div class="best-container">0</div>
+      </div>
+    </div>
+
+    <!--<div class="store-row">
+      <div class="button-wrapper"><button class="game-store">Game Store</button></div>
+      <div class="coin-wrapper"><div class="coin-container">0</div></div>
+    </div>-->
+
+    <div class="above-game">
+      <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
+      <a class="restart-button">New Game</a>
+    </div>
+
+    <div class="game-container">
+      <div class="game-message">
+        <p></p>
+        <div class="lower">
+	        <a class="keep-playing-button">Keep going</a>
+          <a class="retry-button">Try again</a>
+        </div>
+      </div>
+
+      <div class="grid-container">
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+        <div class="grid-row">
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+          <div class="grid-cell"></div>
+        </div>
+      </div>
+
+      <div class="tile-container">
+
+      </div>
+    </div>
+
+    <p class="game-explanation">
+      <strong class="important">How to play:</strong> Use your <strong id="moveTrigger">arrow keys</strong> to move the tiles. When two tiles with the same number touch, they <strong>merge into one!</strong>
+      <br>
+      <strong class="important">Objective:</strong> Combine tiles until you reach a tile of 2048!
+    </p>
+    <!--<p id="ai-run">Let the Computer take over</p>-->
+  </div>
+
+  <div class="coin-award-popup">
+    <div class="coin-award-content">
+      <div class="coin-award-header">Congrats!</div>
+      <img src="style/coin.png" alt="coin">
+      <div class="coin-amount">0</div>
+      <button class="coin-continue btn" onclick="this.parentNode.parentNode.style.display='none'">Continue</button>
+    </div>
+  </div>
+
+  <!-- Leaderboard Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/8.4.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.4.2/firebase-firestore.js"></script>
+  <script src="/leaderboard-handler.js"></script>
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBlwqgFRZO3nW4HOzxv6eV0USjA4vGWNhM",
+        authDomain: "leaderboard-e6efb.firebaseapp.com",
+        projectId: "leaderboard-e6efb",
+        storageBucket: "leaderboard-e6efb.appspot.com",
+        messagingSenderId: "254973774391",
+        appId: "1:254973774391:web:452f3b5e86e3d320574db2"
+    };
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+  </script>
+  <!-- Game Scripts -->
+  <script src="js/bind_polyfill.js"></script>
+  <script src="js/classlist_polyfill.js"></script>
+  <script src="js/animframe_polyfill.js"></script>
+  <script src="js/keyboard_input_manager.js"></script>
+  <script src="js/html_actuator.js"></script>
+  <script src="js/grid.js"></script>
+  <script src="js/tile.js"></script>
+  <script src="js/local_storage_manager.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/store_manager.js"></script>
+  <script src="js/game_manager.js"></script>
+  <script src="js/application.js"></script>
+
+  <script>
+    if(isMobile()) {
+      document.getElementById('moveTrigger').innerText="fingers";
+    }
+    function isMobile() {
+      var mobile;
+      if(window.innerWidth > 775) {
+        mobile = false;
+      } else {
+        mobile = true;
+      }
+      return mobile;
+    }
+    var elem = document.documentElement;
+  function openFullscreen() {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) { /* Safari */
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { /* IE11 */
+      elem.msRequestFullscreen();
+    }
+  }
+  function fullscreen() {
+    if(document.querySelector('.game-container').classList.contains('fullscreen')) {
+      document.querySelector('.game-container').classList.remove('fullscreen');
+    } else {
+      document.querySelector('.game-container').classList.add('fullscreen');
+    }
+  }
+
+  var storeManagerContructor = new StoreManager();
+  var currentTheme = storeManagerContructor.getCurrentTheme();
+
+  document.body.classList.add(currentTheme);
+
+  document.querySelector('.game-store').addEventListener('click', function(e) {
+    e.preventDefault();
+    window.location='store';
+  });
+  </script>
+  <!-- Game adapted from Gabriele Cirulli -->
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=0">
+	<meta name="author" content="Zane Wesley">
+	<!-- General -->
+	<meta name="theme-color" content="#BF56FF">
+	<meta name="application-name" content="Vividly">
+	<link rel="shortcut icon" href="icon.png">
+	<link rel="icon" type="image/png" sizes="500x500" href="icon.png">
+	<!-- Apple -->
+	<meta name="apple-mobile-web-app-title" content="Vividly">
+	<meta name="apple-mobile-web-app-status-bar-style" content="#BF56FF">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<link rel="apple-touch-icon" sizes="500x500" href="icon.png">
+	<link rel="mask-icon" href="icon.png" color="#BF56FF">
+	<!-- Fonts -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Open+Sans&family=Sansita+Swashed&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.0.0/css/all.css" crossorigin="anonymous"/>
+
+	<title>Join a Call | Vividly</title>
+
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			/*overflow-x: hidden;*/
+			transition: all 1s ease-in-out;
+		}
+		html, body {
+			scroll-behavior: smooth;
+			background-color: #BF56FF;
+			font-family: 'Open Sans', sans-serif;
+			width: 100%;
+			height: auto;
+			font-size: 20px;
+			color: #fff;
+		}
+		button, a {
+			background-color: #4974A5;
+		    border-color: #4974A5;
+		    border-radius: 2.5rem;
+		    border-style: solid;
+		    border-width: 1px;
+		    color: #fff;
+		    font-size: 1em;
+		    padding: 0.5em 3em;
+		    cursor: pointer;
+		    box-shadow: 9px 10px 27px 1px rgba(181, 59, 255,0.75);
+			-webkit-box-shadow: 9px 10px 27px 1px rgba(181, 59, 255,0.75);
+			-moz-box-shadow: 9px 10px 27px 1px rgba(181, 59, 255,0.75);
+			text-decoration: none;
+			transition: all 0.25s cubic-bezier(0.645,0.045,0.355,1);
+		}
+		button:hover, a:hover {
+			background-color: #fff;
+			border-color: #fff;
+			color: #4974A5;
+		}
+		.wrapper {
+			opacity: 0;
+			animation: fadeIn 1s ease-in-out;
+			animation-fill-mode: forwards;
+		}
+		h1 {
+			width: 100%;
+			text-align: center;
+			font-size: 4em;
+			font-family: 'Sansita Swashed', cursive;
+			animation-delay: 0.3s;
+		}
+		.wrapper {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 50%;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-around;
+			align-items: center;
+			animation-delay: 1s;
+		}
+		.wrapper .row {
+			display: flex;
+			flex-direction: column;
+		}
+		.name-row {
+			visibility: hidden;
+		}
+		input[type=text] {
+			padding: 8px 16px;
+			border-radius: 8px;
+			border: 1px solid #fff;
+			color: #4974A5;
+			background-color: #fff;
+			margin: 20px 0;
+			outline: none;
+			font-size: 16px;
+		}
+		@keyframes fadeIn {
+			from {opacity: 0;}
+			to {opacity: 1;}
+		}
+		@media (max-width: 480px) {
+			.wrapper {
+				width: 100%;
+			}
+		}
+	</style>
+</head>
+<body>
+	<h1>Vividly</h1>
+	<div class="wrapper">
+		<div class="row join-row">
+			<h2><label for="join-code">Enter Join Code:</label></h2>
+			<input id="join-code" type="text" placeholder="xxxxxxxxxx">
+			<button id="next">Next</button>
+		</div>
+		<div class="row name-row">
+			<h2><label for="display-name">Enter Display Name:</label></h2>
+			<input id="display-name" type="text" placeholder="Your Name">
+			<button id="continue">Continue</button>
+		</div>
+	</div>
+
+	<script>
+		var query = window.location.search;
+    	var urlParams = new URLSearchParams(query);
+
+    	if(urlParams.get('id') !== "" && urlParams.get('id') !== null && urlParams.get('id').length == 10) {
+    		var roomId = urlParams.get('id');
+    		document.getElementById('join-code').value=roomId;
+    		document.getElementById('join-code').disabled=true;
+    		document.querySelector('.join-row').style.display='none';
+    		document.querySelector('.name-row').style.visibility='visible';
+    	}
+
+    	document.getElementById('next').addEventListener('click', function(e) {
+    		e.preventDefault();
+    		if(document.getElementById('join-code').value != "" && document.getElementById('join-code').value != null && document.getElementById('join-code').value.length == 10) {
+    			document.getElementById('join-code').disabled=true;
+	    		document.querySelector('.join-row').style.display='none';
+	    		document.querySelector('.name-row').style.visibility='visible';
+    		}
+    	});
+
+    	document.getElementById('continue').addEventListener('click', function(e) {
+    		e.preventDefault();
+    		if(document.getElementById('display-name').value != "" && document.getElementById('display-name').value != null && document.getElementById('display-name').value.length >=2) {
+    			var roomURL = `chat?id=${encodeURIComponent(document.getElementById('join-code').value)}&username=${encodeURIComponent(document.getElementById('display-name').value)}`;
+    			window.location = roomURL;
+    		}
+    	});
+	</script>
+</body>
+</html>

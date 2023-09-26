@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=0">
+	<meta name="author" content="Zane Wesley">
+	<!-- General -->
+	<meta name="theme-color" content="#000000">
+	<meta name="application-name" content="Vividly">
+	<link rel="shortcut icon" href="icon.png">
+	<link rel="icon" type="image/png" sizes="500x500" href="icon.png">
+	<!-- Apple -->
+	<meta name="apple-mobile-web-app-title" content="Vividly">
+	<meta name="apple-mobile-web-app-status-bar-style" content="#000000">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<link rel="apple-touch-icon" sizes="500x500" href="icon.png">
+	<link rel="mask-icon" href="icon.png" color="#000000">
+	<!-- Fonts -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Open+Sans&family=Sansita+Swashed&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.0.0/css/all.css" crossorigin="anonymous"/>
+	<!-- Scripts -->
+	<script src="https://cdn.jsdelivr.net/npm/rtc-lib@0.5.4/dist/bundle/rtc.dep.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://unpkg.com/draggabilly@2/dist/draggabilly.pkgd.min.js"></script>
+
+	<title>Active Call | Vividly</title>
+
+	<style>
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+			/*transition: all 1s ease-in-out;*/
+		}
+		html, body {
+			scroll-behavior: smooth;
+			background-color: #fff;
+			font-family: 'Open Sans', sans-serif;
+			width: 100%;
+			height: 100%;
+			font-size: 20px;
+			color: #BF56FF;
+		}
+		.cover {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 200vh;
+			height: 200vh;
+			background-color: #BF56FF;
+			border-radius: 50%;
+			animation: shrinkIn 1.5s ease-in-out;
+			animation-fill-mode: forwards;
+			z-index: 99;
+		}
+		.bg-target {
+			position: fixed;
+			width: 100%;
+			height: 100%;
+			top: 0;
+			left: 0;
+			transform: none;
+			background-color: #fff;
+			border-radius: 0;
+			z-index: 1;
+		}
+		@keyframes shrinkIn {
+			to {
+				width: 0;
+				height: 0;
+			}
+		}
+		.call-top {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			background-image: linear-gradient(0deg, #fff, #ccc);
+			text-align: center;
+			z-index: 7;
+		}
+		.call-bottom {
+			position: fixed;
+			bottom: 0;
+			left: 0;
+			width: 100vw;
+			background-image: linear-gradient(
+			    180deg,
+			    hsla(0, 0%, 35.29%, 0) 0%,
+			    hsla(0, 0%, 34.53%, 0.034375) 16.36%,
+			    hsla(0, 0%, 32.42%, 0.125) 33.34%,
+			    hsla(0, 0%, 29.18%, 0.253125) 50.1%,
+			    hsla(0, 0%, 24.96%, 0.4) 65.75%,
+			    hsla(0, 0%, 19.85%, 0.546875) 79.43%,
+			    hsla(0, 0%, 13.95%, 0.675) 90.28%,
+			    hsla(0, 0%, 7.32%, 0.765625) 97.43%,
+			    hsla(0, 0%, 0%, 0.8) 100%);
+			display: flex;
+			justify-content: space-around;
+			align-items: center;
+			padding-bottom: 2em;
+			z-index: 7;
+			visibility: hidden;
+			opacity: 0;
+			transition: all 0.25s cubic-bezier(0.645,0.045,0.355,1)!important;
+		}
+		.call-bottom.open {
+			visibility: visible;
+			opacity: 1;
+		}
+		.call-bottom div {
+			border-radius: 50%;
+			background-color: rgba(0,0,0,0.1);
+			padding: 1em;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			width: 50px;
+			height: 50px;
+			cursor: pointer;
+		}
+		.call-bottom div:hover {
+			background-color: rgba(0,0,0,0.2);
+		}
+		.call-bottom div.hangup {
+			width: 70px;
+			height: 70px;
+			font-size: 1.2em;
+			color: #fff;
+			background-color: #e10000;
+		}
+		.call-bottom div.settings {
+			position: fixed;
+			top: 1em;
+			left: 1em;
+		}
+		video {
+            pointer-events: none;
+            transition: all 0.3s;
+            object-fit: contain;
+            background-color: transparent;
+        }
+        /* Mirror Image */
+        video.mirror {
+            transform: rotateY(180deg);
+            -webkit-transform:rotateY(180deg); /* Safari and Chrome */
+            -moz-transform:rotateY(180deg); /* Firefox */
+        }
+		#localUser {
+			position: absolute;
+			top: 3em;
+			right: 1em;
+			border: 1px solid #ccc;
+			border-radius: 10px;
+		    width: 114px;
+		    height: 114px;
+		    cursor: pointer;
+		    z-index: 5;
+		    visibility: visible;
+		    transition: all 0.25s cubic-bezier(0.645,0.045,0.355,1);
+		}
+		#localUser.off {
+			visibility: hidden;
+			opacity: 0;
+		}
+		#localUser video {
+			/*position: absolute;
+			left: 0;
+			top: 0;*/
+		    /*width: 1280px;
+		    height: 720px;*/
+		    width: 100%;
+		    height: 100%;
+		    background-color: transparent;
+		}
+		#remoteUsers {
+			overflow-x: auto;
+			overflow-y: hidden;
+			position: fixed;
+			top: 0;
+			left: 0;
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: 100%;
+            overscroll-behavior-inline: contain;
+            scroll-snap-type: inline mandatory;
+            z-index: 3;
+        }
+        #remoteUsers .vid-wrap {
+            width: 100%;
+            height: calc(100vh - 17px);
+            scroll-snap-align: start;
+        }
+        #remoteUsers .vid-wrap video {
+        	width: 100%;
+        	height: 100%;
+        }
+        .modal {
+        	position: fixed;
+        	top: 0;
+        	left: 0;
+        	width: 100%;
+        	height: 100%;
+        	z-index: 9;
+        	background-color: rgba(0, 0, 0, 0.6);
+        	visibility: hidden;
+        	opacity: 0;
+        	transition: all 0.25s cubic-bezier(0.645,0.045,0.355,1);
+        }
+        .modal.open {
+        	visibility: visible;
+        	opacity: 1;
+        }
+        .modal .inner {
+        	position: absolute;
+        	top: 50%;
+        	left: 50%;
+        	transform: translate(-50%, -50%);
+        	width: 50%;
+        	height: auto;
+        	background-color: #fff;
+        	border-radius: 8px;
+        	padding: 1em;
+        }
+        .modal .inner h3 {
+        	text-align: center;
+        }
+        #share-modal .inner label {
+        	color: #000;
+        	display: block;
+        }
+        #share-modal .inner .btn-wrapper {
+        	display: flex;
+        	justify-content: space-between;
+        	align-items: center;
+        }
+        #settings-modal .inner button {
+        	float: right;
+        }
+        #settings-modal .settings-wrapper {
+        	display: flex;
+        	flex-direction: column;
+        	justify-content: space-around;
+        	align-items: flex-start;
+        }
+        #settings-modal .settings-wrapper div {
+        	display: flex;
+        	justify-content: space-between;
+        	align-items: center;
+        	width: 100%;
+        }
+        #settings-modal label {
+        	color: #4974A5;
+        	cursor: pointer;
+        }
+        input[type=text] {
+			padding: 8px 16px;
+			border-radius: 8px;
+			border: 1px solid #fff;
+			color: #4974A5;
+			background-color: #fff;
+			outline: none;
+			font-size: 16px;
+			margin: 1em 0;
+			width: 100%;
+		}
+		input[type=checkbox] {
+		  /* Add if not using autoprefixer */
+		  -webkit-appearance: none;
+		  /* Remove most all native input styles */
+		  -moz-appearance: none;
+		       appearance: none;
+		  /* For iOS < 15 */
+		  background-color: var(--form-background);
+		  /* Not removed via appearance */
+		  margin: 0;
+		  font: inherit;
+		  color: currentColor;
+		  width: 1.15em;
+		  height: 1.15em;
+		  border: 0.15em solid currentColor;
+		  border-radius: 0.15em;
+		  transform: translateY(-0.075em);
+		  display: grid;
+		  place-content: center;
+		}
+
+		input[type=checkbox]::before {
+		  content: "";
+		  width: 0.65em;
+		  height: 0.65em;
+		  -webkit-clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+		          clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+		  transform: scale(0);
+		  transform-origin: bottom left;
+		  transition: 120ms transform ease-in-out;
+		  box-shadow: inset 1em 1em #BF56FF;
+		  /* Windows High Contrast Mode */
+		  background-color: CanvasText;
+		}
+
+		input[type=checkbox]:checked::before {
+		  transform: scale(1);
+		}
+
+		input[type=checkbox]:focus {
+		  outline: max(2px, 0.15em) solid currentColor;
+		  outline-offset: max(2px, 0.15em);
+		}
+
+		input[type=checkbox]:disabled {
+		  color: #959495;
+		  cursor: not-allowed;
+		}
+		button {
+			background-color: #4974A5;
+		    border-color: #4974A5;
+		    border-radius: 2.5rem;
+		    border-style: solid;
+		    border-width: 1px;
+		    color: #fff;
+		    font-size: 1em;
+		    padding: 0.5em 3em;
+		    cursor: pointer;
+			text-decoration: none;
+			transition: all 0.25s cubic-bezier(0.645,0.045,0.355,1);
+		}
+		button:hover, a:hover {
+			background-color: #fff;
+			color: #4974A5;
+		}
+		.snackbar {
+          visibility: hidden;
+          min-width: 250px;
+          margin-left: -125px;
+          background-color: #333;
+          color: #fff;
+          text-align: center;
+          border-radius: 2px;
+          padding: 16px;
+          position: fixed;
+          z-index: 11;
+          left: 50%;
+          bottom: 30px;
+          font-size: 17px;
+        }
+        .snackbar.show {
+          visibility: visible;
+          -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+          animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+        @-webkit-keyframes fadein {
+          from {bottom: 0; opacity: 0;} 
+          to {bottom: 30px; opacity: 1;}
+        }
+        @keyframes fadein {
+          from {bottom: 0; opacity: 0;}
+          to {bottom: 30px; opacity: 1;}
+        }
+        @-webkit-keyframes fadeout {
+          from {bottom: 30px; opacity: 1;} 
+          to {bottom: 0; opacity: 0;}
+        }
+        @keyframes fadeout {
+          from {bottom: 30px; opacity: 1;}
+          to {bottom: 0; opacity: 0;}
+        }
+
+        @media (max-width: 480px) {
+        	.modal .inner {
+        		width: 90%;
+        	}
+        	button {
+        		padding: 0.25em 1.5em;
+        	}
+        }
+	</style>
+</head>
+<body>
+	<div class="cover"></div>
+	<div class="bg-target"></div>
+	<div class="call-top"><h1>Unnamed Call</h1></div>
+	<div class="call-bottom open">
+		<div class="mic-toggle"><i class="fa-solid fa-microphone"></i></div>
+		<div class="hangup"><i class="fa-solid fa-phone"></i></div>
+		<div class="cam-toggle"><i class="fa-solid fa-video"></i></div>
+		<div class="settings"><i class="fa-solid fa-cog"></i></div>
+	</div>
+
+	<div id="localUser">
+        <video id="userCamera" class="mirror" autoplay muted playsinline></video>
+    </div>
+
+    <div id="remoteUsers">
+    	<!--<div class="vid-wrap"><video autoplay muted loop src="https://www.w3schools.com/html/mov_bbb.mp4"></video></div>-->
+    </div>
+
+	<div id="share-modal" class="modal">
+		<div class="inner">
+			<h3>Invite Link</h3>
+			<label for="share-link">Share this link to invite call members:</label>
+			<input type="text" id="share-link" value="No Link" disabled>
+			<div class="btn-wrapper">
+				<button onclick="CopyToClipboard(document.getElementById('share-link').value)">Copy Link</button>
+				<button onclick="this.parentNode.parentNode.parentNode.classList.remove('open')">Close</button>
+			</div>
+		</div>
+	</div>
+
+	<div id="settings-modal" class="modal">
+		<div class="inner">
+			<h3>Settings</h3>
+			<div class="settings-wrapper">
+				<div><label for="pref-mirror">Mirror You</label><input type="checkbox" id="pref-mirror" checked></div>
+				<div><label for="pref-preview">Display Preview</label><input type="checkbox" id="pref-preview" checked></div>
+				<div><label for="pref-share">Share Link</label><input type="button" id="pref-share"></div>
+			</div>
+			<button id="save-close">Save & Close</button>
+		</div>
+	</div>
+
+	<!-- The core Firebase JS SDK is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.3.2/firebase-firestore.js"></script>
+
+    <script>
+      // Your web app's Firebase configuration
+      // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+      var firebaseConfig = {
+        apiKey: "AIzaSyBr2BdRPAN3Vrs2gpBEMAoEACoLls2zn40",
+        authDomain: "vividly-a87c6.firebaseapp.com",
+        projectId: "vividly-a87c6",
+        storageBucket: "vividly-a87c6.appspot.com",
+        messagingSenderId: "69460600594",
+        appId: "1:69460600594:web:efce620c78db87d6cdb5cb",
+        measurementId: "G-HS67FMZ4DF"
+      };
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      firebase.analytics();
+    </script>
+    <script>
+    	/*
+            * URL Queries & Param Management
+        */
+        var query = window.location.search;
+        var urlParams = new URLSearchParams(query);
+        var roomKey, name, roomInfo, stream;
+
+        if (urlParams.get('username') !== "" && urlParams.get('username') !== null && urlParams.get('id') !== "" && urlParams.get('id') !== null) {
+            var roomId = urlParams.get('id');
+            var name = urlParams.get('username');
+            roomKey = urlParams.get('id');
+
+            getRoom();
+
+        } else if(urlParams.get('id') !== "" && urlParams.get('id') !== null) {
+            window.location = 'join?id='+urlParams.get('id');
+        } else {
+            window.location='/vividly';
+        }
+
+        if(urlParams.get('shareLink') == true || urlParams.get('shareLink') == 'true') {
+            document.getElementById('share-modal').classList.add('open');
+        }
+
+        /*
+			* Room Management
+        */
+
+        function getRoom() {
+        	console.log('Getting room...');
+        	var query = firebase.firestore().collection('rooms').where("id", "==", roomKey);
+          
+        	// Start listening to the query
+        	query.onSnapshot(function(snapshot) {
+         		snapshot.docChanges().forEach(function(change) {
+        			if (change.type === 'removed') {
+        				document.location = 'index';
+        			} else {
+        				var room = change.doc.data();
+        				console.log(room);
+        				roomInfo = room;
+        				//init connection
+            			connect();
+            			//init page details
+        				init();
+        			}
+        		});
+        	});
+        }
+
+        function init() {
+        	console.log('Initiating call...');
+            //init local camera
+            document.getElementById('userCamera').muted=true;
+
+            //init share modal
+            document.getElementById('share-link').value = createShareLink();
+
+            //init room info
+            document.querySelector('.call-top h1').innerText = roomInfo.name;
+            document.title= `Active Call | ${roomInfo.name} | Vividly`;
+
+            //init display url
+            //history.replaceState('', 'Connected to Meeting', '/vividly/chat');
+
+            document.querySelector('.mic-toggle').addEventListener('click', function(e) {
+        		e.preventDefault();
+        		stream.toggleMute(type='audio');
+        		document.querySelector('.mic-toggle i').classList.toggle('fa-microphone');
+        		document.querySelector('.mic-toggle i').classList.toggle('fa-microphone-slash');
+        		var hasAudio = document.querySelector('.mic-toggle i').classList.contains('fa-microphone') ? 'on' : 'off';
+        		console.log('audio', hasAudio);
+        	});
+
+        	document.querySelector('.cam-toggle').addEventListener('click', function(e) {
+        		e.preventDefault();
+        		stream.toggleMute(type='video');
+        		document.querySelector('.cam-toggle i').classList.toggle('fa-video');
+        		document.querySelector('.cam-toggle i').classList.toggle('fa-video-slash');
+        		var hasVideo = document.querySelector('.cam-toggle i').classList.contains('fa-video') ? 'on' : 'off';
+        		console.log('video', hasVideo);
+        	});
+
+        	document.querySelector('.hangup').addEventListener('click', function(e) {
+        		e.preventDefault();
+        		window.location='join?id='+roomInfo.id;
+        	});
+        }
+
+        /* 
+         * RTC Lib Documentation: http://innovailable.github.io/rtc-lib/
+         * https://github.com/Innovailable/rtc-lib
+         * https://www.npmjs.com/package/rtc-lib
+         */
+
+
+        async function connect() {
+        	console.log('Connecting to call room...');
+          // get room id & clear it from url
+          const roomKey = "v-" + roomInfo.id;
+
+          // connnect to a public signaling server using the given key
+          const channel = new rtc.WebSocketChannel("wss://easy.innovailable.eu/" + encodeURI(roomKey));
+          const signaling = new rtc.MucSignaling(channel);
+
+          // use a public stun server
+          const options = {
+            stun: "stun:stun.innovailable.eu",
+          }
+
+          // create a room
+          const room = new rtc.Room(signaling, options);
+          // create data channel
+          /*try {
+          	const dataChannel = new rtc.DataChannel(channel);
+	          dataChannel.connect();
+	          dataChannel.send({text: 'Test'});
+
+	          dataChannel.on('message', function(data) {
+	          	console.log(data);
+	          });
+          } catch(err) {
+          	console.log(err);
+          }*/
+
+          try {
+            // create a local stream from the users camera
+            //const stream = await room.local.addStream({ video: true, audio: true });
+            stream = await room.local.addStream({ video: true, audio: true });
+
+            // display that stream
+            const ve = new rtc.MediaDomElement($('video')[0], stream);
+            autoplay();
+          } catch(err) {
+                alert("Unable to get call stream", err.message);
+            return;
+          }
+
+          // get notified whenever we meet a new peer
+          room.on('peer_joined', function(peer) {
+            // create a video tag for the peer
+            /*const view = document.createElement('video');
+            view.classList.add('mirror');
+            view.autoplay=true;
+            view.playsinline=true;
+            document.getElementById('remoteUsers').append(view);*/
+            const view = $('<video class="mirror" autoplay playsinline>');
+            $('#remoteUsers').append(view);
+            const ve = new rtc.MediaDomElement(view[0], peer);
+            autoplay();
+            $(view).wrap('<div class="vid-wrap">');
+            //wrap(view, document.createElement('div'));
+            $(view).parent().click(function(e) {
+            	e.preventDefault();
+	       		document.querySelector('.call-bottom').classList.toggle('open');
+	       		clearTimeout(actionbarTimeout);
+            });
+
+            // remove the tag after peer left
+            peer.on('left', function() {
+              $(view).parent().remove();
+            });
+          });
+
+          // join the room
+          try {
+            await room.connect();
+          } catch(err) {
+            alert("Unable to join room: " + err.message);
+          }
+        }
+
+        /*
+			* Video Management
+        */
+        function autoplay() {
+            var trigger = document.createElement('button');
+            trigger.onclick= function(e) {
+                document.querySelectorAll('video').forEach(function(elem) {
+                    elem.play();
+                });
+                console.log('Video triggered');
+            }
+            //trigger.style.display="none";
+            trigger.click();
+            trigger.remove();
+        }
+
+        document.querySelectorAll('.vid-wrap, .bg-target').forEach(function(elem) {
+	       	elem.addEventListener('click', function(e) {
+	       		e.preventDefault();
+	       		document.querySelector('.call-bottom').classList.toggle('open');
+	       		clearTimeout(actionbarTimeout);
+	      	});
+	    });
+
+        /*document.getElementById('remoteUsers').addEventListener("wheel", (e) => {
+		    e.preventDefault();
+		    document.getElementById('remoteUsers').scrollLeft += e.deltaY;
+		});*/
+
+		document.getElementById('localUser').addEventListener('dblclick', function(e) {
+			e.preventDefault();
+			previewDrag.setPosition((window.innerWidth-114-16), 60);
+		});
+
+		var actionbarTimeout = setTimeout(function() {
+			document.querySelector('.call-bottom').classList.remove('open');
+		}, 5000);
+
+		document.querySelector('.settings').addEventListener('click', function(e) {
+			document.getElementById('settings-modal').classList.add('open');
+		});
+
+		document.getElementById('pref-mirror').addEventListener('change', function(e) {
+			document.getElementById('userCamera').classList.toggle('mirror');
+		});
+
+		document.getElementById('pref-preview').addEventListener('change', function(e) {
+			document.getElementById('localUser').classList.toggle('off');
+		});
+
+		document.getElementById('pref-share').addEventListener('click', function(e) {
+			document.getElementById('settings-modal').classList.remove('open');
+			document.getElementById('share-modal').classList.add('open');
+		});
+
+		document.getElementById('save-close').addEventListener('click', function(e) {
+			document.getElementById('settings-modal').classList.remove('open');
+		});
+
+        /*
+			* Helper Functions
+        */
+        function wrap(el, wrapper) {
+		    el.parentNode.insertBefore(wrapper, el);
+		    wrapper.appendChild(el);
+		    wrapper.classList.add('vid-wrap');
+		}
+
+        function createShareLink() {
+            var baseUrl = location.hostname + "/vividly/join";
+            var shareUrl = baseUrl + "?id=" + roomKey;
+            return shareUrl;
+        }
+
+        function CopyToClipboard(value) {
+            var tempInput = document.createElement("input");
+            tempInput.value = value;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            snackbarMessgae("Share link copied to the clipboard");
+        }
+
+        function snackbarMessgae(msg) {
+            var snackbar = document.createElement("div");
+            snackbar.innerText=msg;
+            snackbar.classList.add('snackbar');
+            snackbar.classList.add('show');
+            document.body.appendChild(snackbar);
+            setTimeout(function(){ 
+                snackbar.remove();
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

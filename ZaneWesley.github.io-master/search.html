@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=0">
+	<meta name="author" content="Zane Wesley">
+	<meta name="description" content="The place where you can find all of Zane's apps and projects.">
+	<meta name="theme-color" content="#535461">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Zane's Apps">
+	<link rel="apple-touch-icon" href="images/home-icon.svg">
+	<link rel="shortcut icon" href="images/home-icon.svg">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+	<link rel="manifest" href="manifest.json">
+
+	<title>Search Zane's Apps</title>
+
+	<style>
+		* {
+			padding: 0;
+			margin: 0;
+			box-sizing: border-box;
+		}
+		body {
+			width: 100vw;
+			height: 100vh;
+			max-width: 100vw;
+			max-height: 100vh;
+			overflow-x: hidden;
+			font-family: Calibri, sans-serif;
+			text-align: center;
+		}
+		h1 {
+			text-align: center;
+		}
+		input {
+			background-image: url('http://w3schools.com/css/searchicon.png');
+			background-position: 10px 12px;
+			background-repeat: no-repeat;
+			width: 90%;
+			font-size: 16px;
+			padding: 12px 20px 12px 40px;
+			border: 1px solid #ddd;
+			margin-bottom: 12px;
+			outline: none;
+		}
+		ul, li {
+			width: 100%;
+			text-align: left;
+		}
+		ul {
+			list-style-type: none;
+			padding-left: 1em;
+		}
+		li {
+			font-size: 20px;
+			cursor: pointer;
+			padding: 5px;
+		}
+		li:hover {
+			border-bottom: 1px solid #00b0ff;
+			animation: headShake;
+			animation-duration: 0.7s;
+		}
+		li.disabled {
+			opacity: 0.7;
+		}
+		li.disabled:hover {
+			border-bottom: none;
+			animation: none;
+		}
+		#no-results {
+			position: fixed;
+			z-index: -1;
+			width: 100%;
+			height: calc(100% - 6em);
+			top: 6em;
+			left: 0;
+			background-image: url('images/no-results.svg');
+			background-size: contain;
+			background-position: center;
+			background-repeat: no-repeat;
+			font-size: 20px;
+			padding-left: 1em;
+			text-align: left;
+			display: none;
+		}
+	</style>
+</head>
+<body>
+	<h1>Search Apps</h1>
+	<input id="query" type="text" onkeyup="search()" placeholder="Search for apps..." title="Type in an app name">
+	<ul id="querySpace">
+		<li id="cakeninja" data-url="/cakeninja">
+			Cake Ninja
+		</li>
+		<li id="hextris" data-url="/hextris">
+			Hextris
+		</li>
+		<li id="stack" data-url="/stack">
+			Stack
+		</li>
+		<li id="chromedino" data-url="/chromedino">
+			Chrome Dino Runner
+		</li>
+		<li id="colorsplosion" data-url="/colorsplosion">
+			Colorsplosion
+		</li>
+		<li id="numberguessing" data-url="/numberguessing">
+			Guess that Number
+		</li>
+		<li id="2048" data-url="/2048">
+			2048
+		</li>
+		<li id="tictactoe" data-url="/tic-tac-toe">
+			Tic Tac Toe
+		</li>
+		<li id="colorswirl" data-url="/colorswirl/colorswirl">
+			Color Swirl - Updated
+		</li>
+		<li id="connect" data-url="/connect">
+			Connect Messaging
+		</li>
+		<li id="assistant" data-url="/assistant">
+			Corey 2.0
+		</li>
+		<li id="calculator" data-url="/calculator">
+			Calculator
+		</li>
+		<li id="countdownstudio" data-url="/countdownstudio">
+			Countdown Studio
+		</li>
+		<li id="mmc" data-url="/mmc">
+			Molar Mass Calculator
+		</li>
+		<li id="webchat" data-url="/webchat/new">
+			Webchat Video Conferencing
+		</li>
+		<li id="whiteboard" data-url="/whiteboard">
+			Whiteboard
+		</li>
+		<li id="inspiration" data-url="/inspiration">
+			Inspirational Quotes Generator
+		</li>
+		<li id="peace" data-url="/peace">
+			Peace
+		</li>
+		<li id="mrlangbucks" class="newframe" data-url="https://mrlangbucks.github.io">
+			Mr. Lang Bucks (This is currently being archived)
+		</li>
+		<li id="corey-chat" data-url="/imessage">
+			Texting Corey (This is currently being archived)
+		</li>
+		<li id="corey" data-url="/corey?ref=home">
+			Corey - Original Virtual Assistant (This is currently being archived)
+		</li>
+		<li id="about" data-url="/about">
+			About Me
+		</li>
+		<li id="archive" data-url="/archive">
+			App Archive
+		</li>
+	</ul>
+
+	<div id="no-results">
+		No Results
+	</div>
+
+	<script>
+		var query = getParameterByName('q');
+		if(query) {
+			document.getElementById('query').value=query;
+			search();
+		}
+		function search() {
+		    var input, filter, ul, li, a, i, txtValue;
+		    input = document.getElementById("query");
+		    filter = input.value.toUpperCase();
+		    ul = document.getElementById("querySpace");
+		    li = ul.getElementsByTagName("li");
+		    for (i = 0; i < li.length; i++) {
+		        a = li[i];
+		        txtValue = a.textContent || a.innerText;
+		        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+		            li[i].style.display = "";
+		            li[i].classList.add('visible');
+		        } else {
+		            li[i].style.display = "none";
+		            li[i].classList.remove('visible');
+		        }
+		    }
+		    if(ul.querySelectorAll('li.visible').length == 0) {
+		    	document.getElementById('no-results').style.display="block";
+		    } else {
+		    	document.getElementById('no-results').style.display="none";
+		    }
+		}
+		function alphaSortList() {
+		  var list, i, switching, b, shouldSwitch;
+		  list = document.getElementById("querySpace");
+		  switching = true;
+		  /* Make a loop that will continue until
+		  no switching has been done: */
+		  while (switching) {
+		    // start by saying: no switching is done:
+		    switching = false;
+		    b = list.getElementsByTagName("LI");
+		    // Loop through all list-items:
+		    for (i = 0; i < (b.length - 1); i++) {
+		      // start by saying there should be no switching:
+		      shouldSwitch = false;
+		      /* check if the next item should
+		      switch place with the current item: */
+		      if (b[i].innerHTML.toLowerCase() > b[i + 1].innerHTML.toLowerCase()) {
+		        /* if next item is alphabetically
+		        lower than current item, mark as a switch
+		        and break the loop: */
+		        shouldSwitch = true;
+		        break;
+		      }
+		    }
+		    if (shouldSwitch) {
+		      /* If a switch has been marked, make the switch
+		      and mark the switch as done: */
+		      b[i].parentNode.insertBefore(b[i + 1], b[i]);
+		      switching = true;
+		    }
+		  }
+		}
+		function getParameterByName(name, url = window.location.href) {
+		    name = name.replace(/[\[\]]/g, '\\$&');
+		    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+		        results = regex.exec(url);
+		    if (!results) return null;
+		    if (!results[2]) return '';
+		    return decodeURIComponent(results[2].replace(/\+/g, ' '));
+		}
+		$('li').click(function(e) {
+			if(!$(this).hasClass('disabled')) {
+				window.location=$(this).attr('data-url');
+			}
+		});
+		alphaSortList();
+	</script>
+</body>

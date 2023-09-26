@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang='en'>
+	<head>
+		<title>Hextris</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, minimal-ui"/>
+		<meta name="theme-color" content="#fff">
+    	<meta name="apple-mobile-web-app-capable" content="yes">
+    	<meta name="apple-mobile-web-app-title" content="Hextris">
+		<link rel="apple-touch-icon" href="favicon.ico">
+		<link rel="shortcut icon" href="favicon.ico">
+		<link rel="icon" type="image/png" href="favicon.ico">
+		<link href='http://fonts.googleapis.com/css?family=Exo+2' rel='stylesheet' type='text/css'>
+		<link rel="stylesheet" href="style/fa/css/font-awesome.min.css">
+		<link rel="stylesheet" type="text/css" href="style/style.css">
+		<!-- Firebase Scripts -->
+		<script src="https://www.gstatic.com/firebasejs/8.4.2/firebase-app.js"></script>
+		<script src="https://www.gstatic.com/firebasejs/8.4.2/firebase-firestore.js"></script>
+		<script src="/leaderboard-handler.js"></script>
+		<script>
+			// Your web app's Firebase configuration
+			const firebaseConfig = {
+				apiKey: "AIzaSyBlwqgFRZO3nW4HOzxv6eV0USjA4vGWNhM",
+			    authDomain: "leaderboard-e6efb.firebaseapp.com",
+			    projectId: "leaderboard-e6efb",
+			    storageBucket: "leaderboard-e6efb.appspot.com",
+			    messagingSenderId: "254973774391",
+			    appId: "1:254973774391:web:452f3b5e86e3d320574db2"
+			};
+
+			// Initialize Firebase
+			const app = firebase.initializeApp(firebaseConfig);
+		</script>
+		<!-- Game Scripts -->
+		<script type='text/javascript' src="vendor/hammer.min.js"></script>
+		<script type='text/javascript' src="vendor/js.cookie.js"></script>
+		<script type='text/javascript' src="vendor/jsonfn.min.js"></script>
+		<script type='text/javascript' src="vendor/keypress.min.js"></script>
+		<script type='text/javascript' src="vendor/jquery.js"></script>
+		<script type='text/javascript' src="js/save-state.js"></script>
+		<script type='text/javascript' src="js/view.js"></script>
+		<script type='text/javascript' src="js/wavegen.js"></script>
+		<script type='text/javascript' src="js/math.js"></script>
+		<script type='text/javascript' src="js/Block.js"></script>
+		<script type='text/javascript' src="js/Hex.js"></script>
+		<script type='text/javascript' src="js/Text.js"></script>
+		<script type='text/javascript' src="js/comboTimer.js"></script>
+		<script type='text/javascript' src="js/checking.js"></script>
+		<script type='text/javascript' src='js/update.js'></script>
+		<script type='text/javascript' src='js/render.js'></script>
+		<script type='text/javascript' src="js/input.js"></script>
+		<script type='text/javascript' src="js/main.js"></script>
+		<script type='text/javascript' src="js/initialization.js"></script>
+		<script type='text/javascript' async src="a.js"></script>
+		<script src="vendor/sweet-alert.min.js"></script>
+		<link rel="stylesheet" href="style/rrssb.css"/>
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-YEEGMG5QT7"></script>
+		<script>
+		  window.dataLayer = window.dataLayer || [];
+		  function gtag(){dataLayer.push(arguments);}
+		  gtag('js', new Date());
+		  
+		  gtag('config', 'G-YEEGMG5QT7');
+		</script>
+		<style>
+			#hex-bg {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50%, -50%);
+				z-index: 100000001;
+				animation: grow 10s infinite;
+			}
+			#loading {
+				position: absolute;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				z-index: 100000001;
+				color: #2C3E50;
+				background-color: #ecf0f1;
+			}
+			#loading h1 {
+				position: absolute;
+				left: 50%;
+				top: 50%;
+				transform: translate(-50%, -50%);
+				font-size: 5em;
+				z-index: 100000003;
+			}
+			@keyframes grow {
+				0% {
+					transform: translate(-50%, -50%) scale(1);
+					opacity: 0;
+				}
+				50% {
+					opacity: 1;
+				}
+				100% {
+					transform: translate(-50%, -50%) scale(5);
+					opacity: 0;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id="canvas"></canvas>
+		<div id="overlay" class="faded overlay"></div>
+		<div id='startBtn' ></div>
+		<div id="helpScreen" class='unselectable'>
+			<div id='inst_main_body'></div>
+		</div>
+		<img id="openSideBar" class='helpText' src="./images/btn_help.svg"/>
+		<div class="faded overlay"></div>
+		<img id="pauseBtn" src="./images/btn_pause.svg"/>
+		<img id='restartBtn' src="./images/btn_restart.svg"/>
+		<div id='HIGHSCORE'>HIGH SCORE</div>
+		<div id='highScoreInGameText'>
+			<div id='highScoreInGameTextHeader'>HIGH SCORE</div><div id='currentHighScore'>10292</div>
+		</div>
+		<div id="gameoverscreen">
+			<div id='container'>
+				<div id='gameOverBox' class='GOTitle'>GAME OVER</div>
+				<div id='cScore'>1843</div>
+				<div id='highScoresTitle' class='GOTitle'>HIGH SCORES</div>
+				<div class='score'><span class='scoreNum'>1.</span> <div id="1place" style="display:inline;">0</div></div>
+				<div class='score'><span class='scoreNum'>2.</span> <div id="2place" style="display:inline;">0</div></div>
+				<div class='score'><span class='scoreNum'>3.</span> <div id="3place" style="display:inline;">0</div></div>
+			</div>
+			<div id='bottomContainer'>
+				<img id='restart' src='./images/btn_restart.svg' height='57px'>
+				<div id='buttonCont'>
+					//
+				</div>
+			</div>
+		</div>
+		<div id="loading">
+			<h1>Loading</h1>
+		</div>
+		<svg id="hex-bg" version="1.1" xmlns="http://www.w3.org/2000/svg" width="200" height="174" viewbox="0 0 200 173.20508075688772" style="filter: drop-shadow(rgba(255, 255, 255, 0) 0px 0px 10px);">
+			<path fill="#fff" d="M0 86.60254037844386L50 0L150 0L200 86.60254037844386L150 173.20508075688772L50 173.20508075688772Z"></path>
+		</svg>
+		<script>
+			window.addEventListener('DOMContentLoaded', function(e) {
+				setTimeout(function() {
+					$('#hex-bg').fadeOut();
+					$('#loading').fadeOut();
+				}, 2000);
+			});
+		</script>
+	</body>
+</html>

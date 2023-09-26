@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=0">
+    <title>Web Chat</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/rtc-lib@0.5.4/dist/bundle/rtc.dep.min.js"></script>
+    <script src="https://unpkg.com/draggabilly@2/dist/draggabilly.pkgd.min.js"></script>
+    <link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
+    <link rel="icon" type="icon/ico" href="logo.ico">
+    <style>
+        * {
+          user-select: none!important;
+          -moz-user-select: none!important;
+          -webkit-user-select: none!important;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: "Montserrat", sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          background-color: #f9fafc;
+          /*background-color: #181818;*/
+          color: #595354;
+          overflow-x: hidden;
+          transition: all 1s;
+        }
+
+        a {
+            color: #65a9e5;
+        }
+
+        .header {
+          background-color: #ffffff;
+          padding: 10px 40px;
+          box-shadow: 0px 3px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header > .logo-container {
+          display: flex;
+          align-items: center;
+        }
+
+        .header > .logo-container > .logo-img {
+          width: 60px;
+          height: 60px;
+          margin-right: 15px;
+        }
+
+        .header > .logo-container > .logo-text {
+          font-size: 26px;
+          font-weight: 700;
+        }
+
+        .header > .logo-container > .logo-text > .logo-highlight {
+          color: #65a9e5;
+        }
+        .main {
+            padding: 20px 20px;
+        }
+        .room-name {
+            position: absolute;
+            right: 2em;
+        }
+        #userPreview {
+          transition: all 1s;
+        }
+        #userPreview video {
+          width: 320px;
+          height: 240px;
+          border: 1px solid #ccc;
+          pointer-events: none;
+        }
+        video {
+          transition: all 1s;
+          /*background-image: url('video.svg');
+          background-size: 90%;
+          background-repeat: no-repeat;*/
+        }
+        /* Mirror Image */
+        video.mirror {
+            transform: rotateY(180deg);
+            -webkit-transform:rotateY(180deg); /* Safari and Chrome */
+            -moz-transform:rotateY(180deg); /* Firefox */
+        }
+        #userPreview {
+            position: absolute;
+            right: 2em;
+            bottom: 2em;
+            display: none;
+        }
+        #local-settings {
+            display: none;
+            border-bottom: 1px solid #ccc;
+            padding: 1em;
+            text-align: right;
+            transition: all 1s;
+            padding-right: 1.5em;
+        }
+        .control-btn {
+          background-color: transparent;
+          text-align: center;
+          width: 3em;
+        }
+        .control-btn:hover {
+          /*background-color: #469ae3;*/
+          /*color: #595354;*/
+          color: #65a9e5;
+        }
+        #hangUp {
+          background-color: red;
+        }
+        #hangUp:hover {
+          color: #ffffff;
+          background-color: #e10000;
+        }
+        #hangUp:after {
+          content: ' Leave';
+        }
+        #guests {
+            display: none;
+            position: absolute;
+            width: 100vw;
+            transition: all 1s;
+        }
+        #guests video {
+            width: 33%;
+            /*padding-right: 1.5em;*/
+            pointer-events: none;
+        }
+        #chatFrame {
+            display: none;
+            position: fixed;
+            right: 0;
+            top: 5.4em;
+            /*background-color: #fff;*/
+            background-color: #212121;
+            /*border: 1px solid #ccc;*/
+            height: 90vh;
+            width: 50%;
+            /*width: 0;*/
+            transition: all 1s;
+        }
+        #chatFrame iframe {
+            border: none;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        #settingsBox {
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background-color: #ffffff;
+          border-radius: 5px;
+          padding: 20px;
+          width: 50%;
+          min-height: 50%;
+          height: auto;
+          display: none;
+          transition: all 1s;
+        }
+
+        #settingsBox h1 {
+          text-align: center;
+        }
+
+        .pinned {
+          position: absolute;
+          width: 100%;
+        }
+
+        button {
+          background-color: #65a9e5;
+          border: none;
+          color: white;
+          padding: 10px 24px;
+          text-align: center;
+          text-decoration: none;
+          display: inline-block;
+          font-size: 16px;
+          cursor: pointer;
+          outline: none;
+          user-select: none;
+          -moz-user-select: none;
+          -webkit-user-select: none;
+        }
+        input {
+            border: 1px solid #ccc!important;
+            padding: 8px;
+            display: inline-block;
+            margin: 0;
+            outline: none;
+        }
+        .desktop-hidden {
+          display: none;
+        }
+    </style>
+    <style>
+        .onoffswitch {
+            position: relative; width: 55px;
+            -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
+        }
+        .onoffswitch-checkbox {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .onoffswitch-label {
+            display: block; overflow: hidden; cursor: pointer;
+            height: 28px; padding: 0; line-height: 28px;
+            border: 0px solid #FFFFFF; border-radius: 30px;
+            background-color: #CCCCCC;
+        }
+        .onoffswitch-label:before {
+            content: "";
+            display: block; width: 30px; margin: -1px;
+            background: #FFFFFF;
+            position: absolute; top: 0; bottom: 0;
+            right: 23px;
+            border-radius: 30px;
+            box-shadow: 0 6px 12px 0px #757575;
+            transition: all 0.5s;
+        }
+        .onoffswitch-checkbox:checked + .onoffswitch-label {
+            background-color: #65A9E5;
+        }
+        .onoffswitch-checkbox:checked + .onoffswitch-label, .onoffswitch-checkbox:checked + .onoffswitch-label:before {
+           border-color: #65A9E5;
+        }
+        .onoffswitch-checkbox:checked + .onoffswitch-label .onoffswitch-inner {
+            margin-left: 0;
+        }
+        .onoffswitch-checkbox:checked + .onoffswitch-label:before {
+            right: 0px; 
+            background-color: #595354; 
+            box-shadow: 3px 6px 18px 0px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+    <style id="ui-styles">
+        #snackbar {
+          visibility: hidden;
+          min-width: 250px;
+          margin-left: -125px;
+          background-color: #333;
+          color: #fff;
+          text-align: center;
+          border-radius: 2px;
+          padding: 16px;
+          position: fixed;
+          z-index: 1;
+          left: 50%;
+          bottom: 30px;
+          font-size: 17px;
+        }
+
+        #snackbar.show {
+          visibility: visible;
+          -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+          animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @-webkit-keyframes fadein {
+          from {bottom: 0; opacity: 0;} 
+          to {bottom: 30px; opacity: 1;}
+        }
+
+        @keyframes fadein {
+          from {bottom: 0; opacity: 0;}
+          to {bottom: 30px; opacity: 1;}
+        }
+
+        @-webkit-keyframes fadeout {
+          from {bottom: 30px; opacity: 1;} 
+          to {bottom: 0; opacity: 0;}
+        }
+
+        @keyframes fadeout {
+          from {bottom: 30px; opacity: 1;}
+          to {bottom: 0; opacity: 0;}
+        }
+        .tooltip {
+          position: relative;
+          display: inline-block;
+        }
+
+        .tooltip .tooltiptext {
+          visibility: hidden;
+          width: 120px;
+          background-color: #383838;
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 5px 0;
+          position: absolute;
+          z-index: 1;
+          top: 150%;
+          left: 50%;
+          margin-left: -60px;
+        }
+
+        .tooltip .tooltiptext::after {
+          content: "";
+          position: absolute;
+          bottom: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 10px;
+          border-style: solid;
+          border-color: transparent transparent #383838 transparent;
+        }
+
+        .tooltip:hover .tooltiptext {
+          visibility: visible;
+        }
+        .menu {
+          width: 140px;
+          z-index: 500;
+          box-shadow: 0 4px 5px 3px rgba(0, 0, 0, 0.2);
+          position: fixed;
+          display: none;
+          transition: 0.2s display ease-in;
+          background-color: #333;
+          color: #fff;
+        }
+        .menu .menu-options {
+          list-style: none;
+          /*padding: 10px 0;*/
+          padding: 0;
+          z-index: 1;
+        }
+        .menu .menu-options .menu-option {
+          font-weight: 500;
+          z-index: 1;
+          font-size: 14px;
+          padding: 10px 40px 10px 20px;
+          cursor: pointer;
+        }
+        .menu .menu-options .menu-option:hover {
+          background: rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes move {
+          from {
+            transform: translate(0%);
+          }
+          50% {
+            transform: translate(-40%);
+          }
+          to {
+            transform: transform(0%);
+          }
+        }
+        #muted-notice {
+          display:  none;
+          min-width: 250px;
+          margin-left: -125px;
+          background-color: #333;
+          color: #fff;
+          text-align: center;
+          border-radius: 2px;
+          padding: 16px;
+          position: fixed;
+          z-index: 1;
+          right: 3em;
+          bottom: 3em;
+          font-size: 17px;
+        }
+    </style>
+    <style id="mobile-styles">
+      @media (max-width:755px) {
+        .room-name {
+            position: static;
+            display: block;
+        }
+        #chatFrame {
+          top: 9.7em;
+          height: 70vh;
+          width: 100%;
+        }
+        #hangUp:after {
+          content: '';
+        }
+        #settingsBox {
+          width: 90%;
+        }
+        #local-settings {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          width: 100%;
+          z-index: 5;
+          background-color: #181818;
+          padding: 0;
+        }
+        #settingsBox {
+          width: 90%;
+          height: 100%;
+        }
+        .tooltip:hover .tooltiptext {
+          visibility: hidden;
+        }
+        #userPreview {
+          display: none!important;
+        }
+        #userPreview video {
+          width: 33%;
+          /*padding-right: 1.5em;*/
+          pointer-events: none;
+        }
+        #guests {
+          padding-bottom: 3em;
+        }
+        #guests video {
+          width: 90%;
+          /*padding-right: 1.5em;*/
+          pointer-events: none;
+        }
+        .mobile-hidden {
+          display: none;
+        }
+        .desktop-hidden {
+          display: inherit;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+        <div class="logo-container">
+          <img src="logo.ico" alt="Web Chat logo" class="logo-img" />
+          <h1 class="logo-text">
+            Web<span class="logo-highlight">Chat</span>
+          </h1>
+          <h2 class="room-name"></h2>
+        </div>
+    </header>
+    <div id="main" class="main">
+        <div id="setup-container">
+            <h3>Join a Meeting</h3>
+            <div id="roomKeyContainer">
+                <label for="room_key">Room Key:</label>
+                <input type="text" placeholder="Room key" id="room_key" autocomplete="off">
+                <br><br>
+            </div>
+            <div id="roomNameContainer">
+                <label for="room_name">Room Name:</label>
+                <input type="text" placeholder="Room Name" id="room_name" autocomplete="off">
+                <br><br>
+            </div>
+            <div id="usernameContainer">
+                <label for="username">Display Name:</label>
+                <input type="text" placeholder="Your Name" id="username" autocomplete="off">
+            </div>
+            <br>
+            <button id="connectBtn" onclick="preconnect()">Join</button>
+            <p>Test your camera and surroundings before you join <a href="test">here</a>.</p>
+            <p>Want to create your own chat? Click <a href="new">here</a>.</p>
+        </div>
+        <div id="local-settings">
+            <span class="tooltip"><button id="settings-btn" class="control-btn" title="Chat Settings" onclick="settingsDisplayToggle()"><i class="fal fa-cog"></i></button><span class="tooltiptext">Chat Settings</span></span>
+
+            <span class="tooltip"><button id="share" class="control-btn" title="Share Chat" onclick="createShareLink()"><i class="fal fa-share-alt"></i></button><span class="tooltiptext">Share Chat</span></span>
+
+            <span class="tooltip"><button id="chatToggle" class="control-btn" title="Chat" onclick="chatDisplayToggle()"><i class="fal fa-comment-alt-dots"></i></button><span class="tooltiptext">Chat</span></span>
+
+            <span class="tooltip"><button id="toggleVideo" class="control-btn" title="Toggle Camera"><i class="fal fa-video"></i></button><span class="tooltiptext">Toggle Camera</span></span>
+
+            <span class="tooltip"><button id="toggleMute" class="control-btn" title="Toggle Microphone"><i class="fal fa-microphone"></i></button><span class="tooltiptext">Toggle Microphone</span></span>
+
+            <span class="tooltip mobile-hidden"><button id="shareScreen" class="control-btn" title="Share Screen"><i class="fal fa-share-square"></i></button><span class="tooltiptext">Share Screen</span></span>
+
+            <span class="tooltip"><button id="hangUp"  title="Leave Call" onclick="hangup()"><i class="fal fa-phone-slash"></i></button><span class="tooltiptext">Leave</span></span>
+        </div>
+        <div id="guests">
+            <!--<p>Guests:</p>-->
+            <br>
+        </div>
+         <div id="userPreview">
+            You:<br>
+            <video id="userCamera" class="mirror" autoplay muted playsinline></video>
+        </div>
+    </div>
+
+    <div id="chatFrame">
+        <iframe id="chatIframe" crossorigin>Loading Chat&hellip;</iframe>
+    </div>
+
+    <div id="settingsBox">
+      <h1>Chat Settings</h1>
+      <span onclick="settingsDisplayToggle()" style="position: absolute; top: 1em; right: 1em; cursor: pointer; font-size: 2em;"><i class="far fa-times"></i></span>
+      <label for="mirrorToggle"><h3>Mirror Image:</h3></label>
+      <div class="onoffswitch">
+          <input type="checkbox"class="onoffswitch-checkbox" id="mirrorToggle" tabindex="0" checked>
+          <label class="onoffswitch-label" for="mirrorToggle"></label>
+      </div>
+      <label for="hideChat"><h3>Hide Chat:</h3></label>
+      <div class="onoffswitch">
+          <input type="checkbox"class="onoffswitch-checkbox" id="hideChat" tabindex="0">
+          <label class="onoffswitch-label" for="hideChat"></label>
+      </div>
+      <label for="togglePreviewDrag"><h3>Make Camera Preview Movable</h3></label>
+      <div class="onoffswitch">
+          <input type="checkbox"class="onoffswitch-checkbox" id="togglePreviewDrag" tabindex="0">
+          <label class="onoffswitch-label" for="togglePreviewDrag"></label>
+      </div>
+      <label for="toggleShowPreview"><h3>Show Camera Preview</h3></label>
+      <div class="onoffswitch">
+          <input type="checkbox"class="onoffswitch-checkbox" id="toggleShowPreview" tabindex="0" checked>
+          <label class="onoffswitch-label" for="toggleShowPreview"></label>
+      </div>
+      <div class="desktop-hidden">
+        <label for="shareScreenCheckbox"><h3>Share Screen</h3></label>
+      <div class="onoffswitch">
+          <input type="checkbox"class="onoffswitch-checkbox" id="shareScreenCheckbox" tabindex="0">
+          <label class="onoffswitch-label" for="shareScreenCheckbox"></label>
+      </div>
+      </div>
+    </div>
+
+    <div id="muted-notice">You're microphone is muted.</div>
+    <div id="snackbar"></div>
+
+    <div class="menu">
+      <ul class="menu-options">
+        <li class="menu-option" onclick="chatDisplayToggle()">Toggle Chat</li>
+        <!--<li class="menu-option" onclick="previewDisplayToggle()">Toggle Camera Preview</li>-->
+        <li class="menu-option" onclick="createShareLink()">Share Link</li>
+        <li class="menu-option" onclick="hangup()">Leave Call</li>
+      </ul>
+    </div>
+
+    <script>
+        var query = window.location.search;
+        var urlParams = new URLSearchParams(query);
+        var videoStream = document.getElementById('userCamera').srcObject;
+        var camOn = true, hasAudio = true;
+        var roomId, roomName, displayName, stream;
+        var userData = localStorage.getItem('webchat-data');
+        var currentUserData = {};
+
+        var draggableUserPreview = new Draggabilly( '#userPreview', {
+          // options
+          //axis: 'x',
+          //containment: 'document'
+          grid: [ 20, 20 ]
+        });
+        draggableUserPreview.disable();
+
+        function init() {
+            if(urlParams.has('key')) {
+                if(urlParams.get('key') !== null && urlParams.get('key') !== "" && urlParams.get('key') !== "undefined") {
+                    var roomQuery = urlParams.get('key').replace('wc_', '');
+                    roomId = 'wc_'+roomQuery;
+                    $('#room_key').val(roomQuery);
+                    //$('#connectBtn').click();
+                    $('#roomKeyContainer').hide();
+                }
+            }
+            if(urlParams.has('name')) {
+                if(urlParams.get('name') !== null && urlParams.get('name') !== "" && urlParams.get('name') !== "undefined") {
+                    $('.room-name').text(urlParams.get('name'));
+                    roomName = urlParams.get('name');
+                    $('#room_name').val(roomName);
+                    customTitle();
+                    console.log('Room name: '+urlParams.get('name'));
+                    $('#roomNameContainer').hide();
+                }
+            }
+            if(urlParams.has('displayName')) {
+                if(urlParams.get('displayName') !== null && urlParams.get('displayName') !== "" && urlParams.get('displayName') !== "undefined") {
+                    displayName = urlParams.get('displayName');
+                    $('#username').val(displayName);
+                    console.log('Display name: '+urlParams.get('name'));
+                }
+            }
+            /*if(userData) {
+                currentUserData = JSON.parse(userData);
+                setUserData();
+            } else {
+                //
+            }*/
+            document.getElementById('userCamera').muted=true;
+            if(isMobile()) {
+              document.getElementById('guests').appendChild(document.querySelector('#userPreview video'));
+              document.querySelector('header').appendChild(document.querySelector('.room-name'));
+            }
+        }
+        $('input').on('keypress', function(e) {
+            if(e.which === 13) {
+                e.preventDefault();
+                preconnect();
+            }
+        });
+
+        /*$('#guests video').on('dblclick', function(e) {
+          $(this).addClass('pinned');
+        });*/
+
+        function iniChat() {
+            document.getElementById('chatIframe').src="https://webchatframe.herokuapp.com/chat.html?key="+roomId+"&name="+displayName;
+        }
+
+        function storeUserInfo() {
+            currentUserData.username = displayName;
+            localStorage.setItem('webchat-data', currentUserData);
+        }
+
+        function setUserData() {
+            $('#username').val(currentUserData.username);
+        }
+
+        function getBrowser() { 
+            /*if((navigator.userAgent.indexOf("Opera") || navigator.userAgent.indexOf('OPR')) != -1 ) {
+                return 'Opera';
+            }
+            else */if(navigator.userAgent.indexOf("Chrome") != -1 )
+            {
+                return 'Chrome';
+            }
+            else if(navigator.userAgent.indexOf("Safari") != -1)
+            {
+                return 'Safari';
+            }
+            else if(navigator.userAgent.indexOf("Firefox") != -1 ) 
+            {
+                 return 'Firefox';
+            }/*
+            else if((navigator.userAgent.indexOf("MSIE") != -1 ) || (!!document.documentMode == true )) //IF IE > 10
+            {
+              return 'IE'; 
+            }*/
+            else {
+               return 'unknown';
+            }
+        }
+
+        /*setInterval(function() {
+            var trigger = document.createElement('button');
+            trigger.onclick= function(e) {
+                $('video').each(function(index) {
+                    this.play();
+                });
+                console.log('Video triggered');
+            }
+            //trigger.style.display="none";
+            trigger.click();
+            trigger.remove();
+        }, 1000);*/
+        function autoplay() {
+            var trigger = document.createElement('button');
+            trigger.onclick= function(e) {
+                $('video').each(function(index) {
+                    this.play();
+                });
+                console.log('Video triggered');
+            }
+            //trigger.style.display="none";
+            trigger.click();
+            trigger.remove();
+        }
+
+        function toggleVideo() {
+            camOn = new rtc.toggleMute ( [type='video'] );
+            console.log('Video Toggled', camOn);
+        }
+
+        function toggleMute() {
+            mute = new rtc.toggleMute ( [type='audio'] );
+            console.log('Sound Toggled', muted);
+        }
+
+        function chatDisplayToggle() {
+            if($('#chatFrame').css('display') === 'none') {
+              if(isMobile()) {
+                document.getElementById('chatFrame').style.display="block";
+                document.querySelector('.main').style.width="0%";
+                document.getElementById('userPreview').style.right="200%";
+                document.getElementById('guests').style.width="0%";
+              } else {
+                document.getElementById('chatFrame').style.display="block";
+                document.querySelector('.main').style.width="50%";
+                document.getElementById('userPreview').style.right="51%";
+                document.getElementById('local-settings').style.paddingRight="2em";
+                document.getElementById('guests').style.width="49%";
+              }
+            } else {
+                document.querySelector('.main').style.width="100%";
+                document.getElementById('userPreview').style.right="2em";
+                document.getElementById('chatFrame').style.display="none";
+                document.getElementById('local-settings').style.paddingRight="2em";
+                document.getElementById('guests').style.width="100%";
+            }
+        }
+
+        function settingsDisplayToggle() {
+          if($('#settingsBox').css('display') === 'none') {
+            document.getElementById('settingsBox').style.display="block";
+          } else {
+            document.getElementById('settingsBox').style.display="none";
+          }
+        }
+
+        function previewDisplayToggle(bool) {
+          if(isMobile()) {
+            if(bool) {
+              document.getElementById('userCamera').style.display="block";
+            } else {
+              document.getElementById('userCamera').style.display="none";
+            }
+          } else {
+            if(bool) {
+              document.getElementById('userPreview').style.display="block";
+            } else {
+              document.getElementById('userPreview').style.display="none";
+            }
+          }
+        }
+
+        document.getElementById('settingsBox').addEventListener('click', function(e) {
+          if($('#mirrorToggle').prop('checked') === true) {
+            mirror();
+          } else {
+            unmirror();
+          }
+          if($('#hideChat').prop('checked') === true) {
+            hideChat(true);
+          } else {
+            hideChat(false);
+          }
+          if($('#togglePreviewDrag').prop('checked') === true) {
+            canDrag(true);
+          } else {
+            canDrag(false);
+          }
+          if($('#toggleShowPreview').prop('checked') === true) {
+            previewDisplayToggle(true);
+          } else {
+            previewDisplayToggle(false);
+          }
+        });
+
+        function mirror() {
+          $('video').addClass('mirror');
+        }
+
+        function unmirror() {
+          $('video').removeClass('mirror');
+        }
+
+        function hideChat(bool) {
+          if(bool === true) {
+            $('#chatToggle').fadeOut();
+            if($('#chatFrame').css('display') === 'block') {
+              chatDisplayToggle();
+            }
+          } else {
+            $('#chatToggle').fadeIn();
+          }
+        }
+
+        function canDrag(bool) {
+          if(bool === true) {
+            draggableUserPreview.enable();
+          } else {
+            draggableUserPreview.disable();
+          }
+        }
+
+        function createShareLink() {
+            var baseUrl = "https://zanewesley.github.io/webchat/chat";
+            var shareUrl = baseUrl + "?key=" + roomId + "&name=" + encodeURIComponent(roomName);
+            CopyToClipboard(shareUrl);
+        }
+
+        function CopyToClipboard(value) {
+            var tempInput = document.createElement("input");
+            tempInput.value = value;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand("copy");
+            document.body.removeChild(tempInput);
+            snackbarMessgae("Share link copied to the clipboard!");
+        }
+
+        function isMobile() {
+          if(window.innerWidth < 775) {
+            return true;
+          } else {
+            return false;
+          }
+        }
+
+        function customTitle() {
+            document.title = roomName+" | Web Chat";
+        }
+
+        function snackbarMessgae(msg) {
+            var snackbar = document.getElementById("snackbar");
+            snackbar.innerText=msg;
+            snackbar.className = "show";
+            setTimeout(function(){ 
+                snackbar.className = snackbar.className.replace("show", "");
+                snackbar.innerText="";
+            }, 5000);
+        }
+
+        function hangup() {
+            window.location='/webchat/chat';
+        }
+
+        function preconnect() {
+            if($('#room_key').val() !== "" && $('#room_key').val() !== null && $('#room_name').val() !== "" && $('#room_name').val() !== null && $('#username').val() !== "" && $('#username').val() !== null) {
+                roomName = $('#room_name').val();
+                displayName = $('#username').val();
+                $('.room-name').text(roomName);
+                connect();
+            } else {
+                alert('All room information is required.');
+            }
+        }
+
+        /* 
+         * RTC Lib Documentation: http://innovailable.github.io/rtc-lib/
+         * https://github.com/Innovailable/rtc-lib
+         * https://www.npmjs.com/package/rtc-lib
+         */
+
+
+        async function connect() {
+          // get room name from input
+          const nameInput = $('#room_key');
+          const roomKey = "wc_" + nameInput.val();
+          roomId = roomKey;
+
+        history.pushState('', 'Update Room Key', '/webchat/chat?key='+roomKey+'&name='+roomName+'&displayName='+displayName);
+        customTitle();
+        storeUserInfo();
+        document.body.style.backgroundColor="#181818";
+        document.querySelector('.main').style.color="#ffffff";
+          
+          // make sure we don't connect twice
+          nameInput.prop('disabled', true).fadeOut();
+          $('#connectBtn').prop('disabled', true).fadeOut();
+          $('#setup-container').fadeOut();
+          $('#local-settings').fadeIn();
+          $('#userPreview').fadeIn();
+          $('#guests').fadeIn();
+          iniChat();
+
+          // connnect to a public signaling server using the given key
+          const channel = new rtc.WebSocketChannel("wss://easy.innovailable.eu/" + encodeURI(roomKey));
+          const signaling = new rtc.MucSignaling(channel);
+
+          // use a poublic stun server
+          const options = {
+            stun: "stun:stun.innovailable.eu",
+          }
+
+          // create a room
+          const room = new rtc.Room(signaling, options);
+          // create data channel
+          //const dataChannel = new rtc.DataChannel(channel);
+
+          try {
+              // create a local stream from the users camera
+            //const stream = await room.local.addStream({ video: true, audio: true });
+            stream = await room.local.addStream({ video: true, audio: true });
+
+            // display that stream
+            const ve = new rtc.MediaDomElement($('video')[0], stream);
+            autoplay();
+          } catch(err) {
+            if(getBrowser() === 'unknown') {
+                alert('Your browser does not support Web Chat Video Conferencing. Please another browser such as Google Chrome, Mozilla Firefox, or Safari.');
+            } else {
+                alert("Unable to get stream, please give permission. You may need to go into settings if you have denied permissions before.");
+            }
+            return;
+          }
+
+          $('#toggleMute').click(function() {
+            stream.toggleMute(type='audio');
+            hasAudio=!hasAudio;
+            if(hasAudio == true) {
+                $('#toggleMute').html('<i class="fal fa-microphone"></i>');
+                $('#muted-notice').fadeOut();
+            } else {
+                $('#toggleMute').html('<i class="fal fa-microphone-slash"></i>');
+                $('#muted-notice').fadeIn();
+            }
+            console.log('Mute Toggled. Has Audio:', hasAudio);
+          });
+          $('#toggleVideo').click(function() {
+            stream.toggleMute(type='video');
+            camOn=!camOn;
+            if(camOn == true) {
+                $('#toggleVideo').html('<i class="fal fa-video"></i>');
+            } else {
+                $('#toggleVideo').html('<i class="fal fa-video-slash"></i>');
+            }
+            console.log('Cam Toggled. Cam On:', camOn);
+          });
+
+          $('#shareScreen').click(function() {
+            snackbarMessgae('Feature not supported yet.');
+          });
+          $('#shareScreenCheckbox').click(function() {
+            if($('#shareScreenCheckbox').prop('checked') === true) {
+              snackbarMessgae('Feature not supported yet.');
+            } else {
+              //
+            }
+          });
+
+          // get notified whenever we meet a new peer
+          room.on('peer_joined', function(peer) {
+            // create a video tag for the peer
+            const view = $('<video class="mirror" autoplay playsinline>');
+            $('#guests').append(view);
+            const ve = new rtc.MediaDomElement(view[0], peer);
+            autoplay();
+
+            // remove the tag after peer left
+            peer.on('left', function() {
+              view.remove();
+            });
+          });
+
+          // join the room
+          try {
+            await room.connect();
+          } catch(err) {
+            alert("Unable to join room: " + err.message);
+          }
+        }
+
+        init();
+    </script>
+    <script id="contextmenu-script">
+      const menu = document.querySelector(".menu");
+      let menuVisible = false;
+
+      function toggleMenu(command) {
+        menu.style.display = command === "show" ? "block" : "none";
+        menuVisible = !menuVisible;
+      };
+
+      function setPosition({ top, left }) {
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+      };
+
+      $('html').on("click", function(e) {
+        /*if (menuVisible) {
+          toggleMenu("hide");
+        }*/
+        toggleMenu("hide");
+      });
+
+      /*$('.mouse-option').on("click", function(e) {
+        console.log(e.target.innerHTML);
+      });*/
+
+      $('html').on("contextmenu", function(e) {
+        e.preventDefault();
+        const origin = {
+          left: e.pageX,
+          top: e.pageY
+        };
+        setPosition(origin);
+        toggleMenu("show");
+        return false;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+	<link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="https://pro.fontawesome.com/releases/v5.10.0/css/all.css" integrity="sha384-AYmEC3Yw5cVb3ZcuHtOA93w35dYTsvhLPVnYs9eStHfGJvOvKxVfELGroGkvsg+p" crossorigin="anonymous"/>
+	<script src="https://unpkg.com/draggabilly@2/dist/draggabilly.pkgd.min.js"></script>
+	<script src="https://sortablejs.github.io/Sortable/Sortable.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/@simonwep/selection-js/lib/selection.min.js"></script><!-- https://simonwep.github.io/selection/ -->
+	<title>Web Desktop</title>
+
+	<style>
+		* {
+			box-sizing: border-box;
+			padding: 0;
+			margin: 0;
+		}
+		html, body {
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+		}
+		body {
+			font-family: 'Roboto', sans-serif;
+		}
+		.desktop {
+			background-image: url('wallpaper.jpg');
+			background-repeat: no-repeat;
+			background-size: 100% 100%;
+			position: absolute;
+			top: 0;
+			left: 0;
+			width: 100vw;
+			height: 100vh;
+			z-index: -1;
+		}
+		#taskbar {
+			white-space: nowrap;
+		    width: 100%;
+		    height: 40px;
+		    background-color: rgba(0,0,0,0.8);
+		    margin-top: -40px;
+		    position: absolute;
+		    bottom: 0;
+		    left: 0;
+		    z-index: 110;
+		    user-select: none;
+		}
+		#startmenu {
+		    width: 902px;
+		    height: 497px;
+		    z-index: 100;
+		    position: fixed;
+		    bottom: 0;
+		    left: 0;
+		    background-color: rgba(31, 30, 29, 0.9);
+		    border-top: 1px solid #313030;
+		    border-right: 1px solid #313030;
+		    display: block;
+		    visibility: hidden;
+		    opacity: 0;
+		    transition: all 0.3s;
+		}
+		#startmenu.open {
+			visibility: visible;
+			opacity: 1;
+			bottom: 40px;
+		}
+		#starticon {
+			position: relative;
+			height: 100%;
+			width: 50px;
+			background-image: url('start.svg');
+			background-repeat: no-repeat;
+			background-size: 50% 50%;
+			background-position: center center;
+			display: inline-block;
+		}
+		#starticon:hover {
+			background-color: rgba(255,255,255,0.2);
+		}
+		#openApps {
+			position: relative;
+			height: 100%;
+			width: calc(100% - 140px);
+			display: inline-block;
+		}
+		#dt-wrapper {
+			position: relative;
+			height: 100%;
+			width: 70px;
+			display: inline-block;
+			color: #fff;
+			text-align: center;
+			top: -5px;
+		}
+		#desktop-wrapper {
+			height: 100%;
+		}
+		.desktop-icon {
+			width: 105px;
+		    height: 110px;
+		    overflow: hidden;
+		    padding: 10px 10px 1px 10px;
+		    text-align: center;
+		    line-height: 17px;
+		    border: none;
+		    box-shadow: none;
+		    cursor: pointer;
+		    user-select: none;
+		}
+		.desktop-icon-inner {
+			padding: 5px 5px;
+    		text-shadow: 1px 1px #000;
+    		border: 1px solid transparent;
+		}
+		.desktop-icon-inner:hover {
+			background-color: rgba(255,255,255, 0.3);
+		    border: 1px solid #ccc;
+		}
+		.desktop-icon-inner.selected {
+			background-color: rgba(255,255,255, 0.3);
+		    border: 1px solid #ccc;
+		}
+		.selection-area {
+		    background: rgba(46, 115, 252, 0.11);
+		    border: 2px solid rgba(98, 155, 255, 0.81);
+		    border-radius: 0.1em;
+		}
+		.desktop-icon-text {
+			font-size: 13px;
+		    height: auto;
+		    color: #FFFFFF;
+		}
+		.desktop-app {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 50%;
+			height: 75%;
+			transform: translate(-50%, -50%);
+			border: 1px solid #ccc;
+			background-color: #fff;
+			font-style: normal;
+			transition:  visibility 0.3s opacity 0.3s;
+			z-index: 90;
+		}
+		.desktop-app.fullscreen {
+			top: 0!important;
+			left: 0!important;
+			height: calc(100% - 40px)!important;
+			width: 100%!important;
+			transform: none;
+			transition: all 0.1s;
+		}
+		.desktop-app.minimized {
+			transform: scale(0.5) translate(-5%, -5%);
+			opacity: 0;
+		}
+		/*.desktop-app*/.closed {
+			visibility: hidden;
+			opacity: 0;
+			transition: all 0.1s;
+		}
+		.desktop-app-top {
+			text-align: right;
+			user-select: none;
+		}
+		.desktop-app-top span {
+			padding: 0.5em;
+			cursor: pointer;
+		}
+		.desktop-app-top span:hover {
+			background-color: lightgrey;
+		}
+		.desktop-app-top span.exit:hover {
+			background-color: red;
+			color: #fff;
+		}
+		.resizer {
+	        position: absolute;
+	        outline: none;
+	    }
+	    /* right side */
+	    .resizer-r {
+	        cursor: col-resize;
+	        height: 100%;
+	        right: 0;
+	        top: 0;
+	        width: 5px;
+	    }
+	    /* bottom */
+	    .resizer-b {
+	        bottom: 0;
+	        cursor: row-resize;
+	        height: 5px;
+	        left: 0;
+	        width: 100%;
+	    }
+		.padding {
+			padding: 1em;
+		}
+		.desktop-icon-order {
+			list-style-type: none;
+		}
+		.desktop-icon-order li {
+			padding: .75rem 1.25rem;
+    		margin-bottom: -1px;
+    		border-bottom: 1px solid rgba(0,0,0,.125);
+    		/*border-left: 4px solid #fff6b2;*/
+    		cursor: move;
+		}
+		.desktop-icon-order li:hover {
+			background-color: #eee;
+		}
+		.placeholder-ghost {
+			background-color: #C8EBFB;
+		}
+		.notification {
+			position: fixed;
+		    right: 20px;
+		    bottom: 50px;
+		    z-index: 999 !important;
+		    display: flex;
+		    max-width: 360px;
+		    border: 1px solid #eaeaea;
+		    border-radius: 2px;
+		    background: rgba(255,255,255,.95);
+		    box-shadow: rgba(0,0,0,.10) 1px 1px 15px 0;
+		    flex-direction: column;
+		    cursor: pointer;
+		}
+		.notification-inner {
+			position: relative;
+		    display: flex;
+		    padding: 10px 20px 10px 10px;
+		    text-decoration: none;
+		    margin: 0;
+		}
+		.notification-icon {
+			margin-right: 10px;
+		    padding: 10px;
+		    display: table;
+		    border-radius: 2px;
+		    line-height: 0;
+		}
+		.notification-icon img {
+			max-width: 40px;
+		}
+		.notification-text .title {
+			display: block;
+		    line-height: 1.5;
+		    font-weight: 600;
+		    font-size: 14px;
+		}
+		.notification-text .content {
+			display: block;
+		    max-width: 350px;
+		    color: #414141;
+		    line-height: 1.35;
+		    font-size: 13px;
+		}
+		.notification-close {
+			position: absolute;
+		    top: 7px;
+		    right: 7px;
+		    display: block;
+		    float: right;
+		    width: 18px;
+		    height: 18px;
+		    border-radius: 50px;
+		    background: rgba(0,0,0,.1);
+		    color: #fff;
+		    text-align: center;
+		    text-decoration: none;
+		    font-weight: bold;
+		    font-size: 12px;
+		    line-height: 150%;
+		    cursor: pointer;
+		}
+		#contextmenu {
+		  visibility: hidden;
+		  opacity: 0;
+		  position: fixed;
+		  background: #fff;
+		  color: #555;
+		  font-family: sans-serif;
+		  font-size: 11px;
+		  -webkit-transition: opacity 0s ease-in-out;
+		  -moz-transition: opacity 0s ease-in-out;
+		  -ms-transition: opacity 0s ease-in-out;
+		  -o-transition: opacity 0s ease-in-out;
+		  transition: opacity 0s ease-in-out;
+		  -webkit-box-shadow: 2px 2px 2px 0px rgba(143, 144, 145, 1);
+		  -moz-box-shadow: 2px 2px 2px 0px rgba(143, 144, 145, 1);
+		  box-shadow: 2px 2px 2px 0px rgba(143, 144, 145, 1);
+		  padding: 0px;
+		  border: 1px solid #C6C6C6;
+		  z-index: 900;
+		}
+
+		#contextmenu a {
+		  display: block;
+		  color: #555;
+		  text-decoration: none;
+		  padding: 6px 8px 6px 30px;
+		  width: 250px;
+		  position: relative;
+		}
+
+		#contextmenu a img,
+		#contextmenu a i.fa {
+		  height: 20px;
+		  font-size: 17px;
+		  width: 20px;
+		  position: absolute;
+		  left: 5px;
+		  top: 2px;
+		}
+
+		#contextmenu a span {
+		  color: #BCB1B3;
+		  float: right;
+		}
+
+		#contextmenu a:hover {
+		  color: #fff;
+		  background: #3879D9;
+		}
+
+		#contextmenu hr {
+		  border: 1px solid #EBEBEB;
+		  border-bottom: 0;
+		}
+		#cover {
+			position: absolute;
+			left: 0;
+			top: 0;
+			width: 100%;
+			height: 100%;
+			background-color: #fff;
+			z-index: 200;
+			text-align: center;
+			transition: all 0.3s;
+			visibility: visible;
+			opacity: 1;
+		}
+		@media(max-width: 775px) {
+			#startmenu {
+			    width: 100%;
+			    height: 90%;
+			}
+			.desktop-app {
+				width: 85%;
+				height: 75%;
+			}
+		}
+	</style>
+</head>
+<body>
+	<div id="desktop-wrapper">
+		<div class="desktop"></div>
+		<div id="taskbar">
+			<div id="starticon"></div>
+			<div id="openApps"></div>
+			<div id="dt-wrapper">
+				<div id="time">0:00 _M</div>
+				<div id="date">0/0/0000</div>
+			</div>
+		</div>
+
+		<div id="startmenu"></div>
+
+		<div id="desktop-icon-container">
+
+			<div class="desktop-icon">
+				<div id="google-icon" class="desktop-icon-inner">
+					<img src="google.svg" style="width: 85%" ondblclick="handleAppOpen(this.parentNode.id)">
+					<div class="desktop-icon-text" ondblclick="handleAppOpen(this.parentNode.id)">Google</div>
+				</div>
+			</div>
+
+			<div class="desktop-icon">
+				<div id="zane-icon" class="desktop-icon-inner">
+					<img src="/images/home-icon.svg" style="width: 85%" ondblclick="handleAppOpen(this.parentNode.id)">
+					<div class="desktop-icon-text" ondblclick="handleAppOpen(this.parentNode.id)">Zane's Apps</div>
+				</div>
+			</div>
+
+			<div class="desktop-icon">
+				<div id="2048-icon" class="desktop-icon-inner">
+					<img src="/2048/icon.png" style="width: 85%" ondblclick="handleAppOpen(this.parentNode.id)">
+					<div class="desktop-icon-text" ondblclick="handleAppOpen(this.parentNode.id)">2048</div>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+	<div class="desktop-app closed" id="zane-app">
+		<div class="desktop-app-top">
+			<span class="minmize">&mdash;</span>
+			<span class="restore fal fa-window-restore"></span>
+			<span class="exit fal fa-times"></span>
+		</div>
+		<iframe src="/" style="border: none; width: 100%; height: calc(100% - 40px);">Loading...</iframe>
+		<div class="resizer resizer-r"></div>
+        <div class="resizer resizer-b"></div>
+	</div>
+
+	<div class="desktop-app closed" id="2048-app">
+		<div class="desktop-app-top">
+			<span class="minmize">&mdash;</span>
+			<span class="restore fal fa-window-restore"></span>
+			<span class="exit fal fa-times"></span>
+		</div>
+		<iframe src="/2048/index" style="border: none; width: 100%; height: calc(100% - 40px);">Loading...</iframe>
+		<div class="resizer resizer-r"></div>
+        <div class="resizer resizer-b"></div>
+	</div>
+
+	<div class="desktop-app fullscreen closed" id="display-settings-app">
+		<div class="desktop-app-top">
+			<span class="minmize">&mdash;</span>
+			<span class="restore fal fa-window-restore"></span>
+			<span class="exit fal fa-times"></span>
+		</div>
+		<div style="padding: 0 1em 1em 1em;">
+				<p style="font-size: 1.5em;">Display Settings</p>
+				<b style="font-size: 1em; padding-top: 1em; display: block;">Reorder Desktop Icons</b>
+				<ul class="desktop-icon-order">
+					<li id="0">Google</li>
+					<li id="1">Zane's Apps</li>
+					<li id="2">2048</li>
+				</ul>
+			</div>
+		</div>
+		<div class="resizer resizer-r"></div>
+        <div class="resizer resizer-b"></div>
+	</div>
+
+	<div class="notification closed">
+		<div class="notification-inner" onclick="requestFullScreen(document.body); this.parentNode.classList.add('closed')">
+			<span class="notification-icon">
+				<img src="/images/home-icon.svg">
+			</span>
+			<span class="notification-text">
+				<span class="title">Tip for Use</span>
+				<span class="content">We recommend fullscreen mode when using your desktop. Click here to open fullscreen.</span>
+			</span>
+		</div>
+		<span class="notification-close" onclick="this.parentNode.classList.add('closed')">&times;</span>
+	</div>
+
+	<div id="contextmenu">
+	  <a href="#" onclick="location.reload();">
+	    Refresh <span>Ctrl+R</span>
+	  </a>
+	  <a href="#">
+	    Sleep <span>Ctrl+X</span>
+	  </a>
+	  <hr>
+	  <a href="#" onclick="handleAppOpen('display-settings-app');">
+	    Display Settings <span>Ctrl+G</span>
+	  </a>
+	  <a href="#" onclick="handleAppOpen('personalize-settings-app');">
+	    Personalize <span>Ctrl+E</span>
+	  </a>
+	  <hr>
+	  <a href="#" onclick="closeAllWindows()">
+	    Close All Windows <span>Ctrl+L</span>
+	  </a>
+	  <a href="#">
+	    Reset Desktop
+	  </a>
+	</div>
+
+	<div id="cover">
+		<h1>Your Web Desktop</h1>
+		<div id="loading-wrapper">
+			<p style="font-size: 1.5em;">Desktop loading&hellip;</p>
+			<img src="loader.png">
+		</div>
+		<!--<button id="open-btn" style="display: none;" onclick="requestFullScreen(document.body); this.parentNode.style.display='none'">Open Desktop Fullscreen</button>-->
+	</div>
+
+	<script>
+		/**********
+		 * ONLOAD *
+		***********/
+		var iconsArray = [
+			'<div class="desktop-icon"> <div id="google-icon" class="desktop-icon-inner"> <img src="google.svg" style="width: 85%" ondblclick="handleAppOpen(this.parentNode.id)"> <div class="desktop-icon-text" ondblclick="handleAppOpen(this.parentNode.id)">Google</div> </div> </div>',//Google
+			'<div class="desktop-icon"> <div id="zane-icon" class="desktop-icon-inner"> <img src="/images/home-icon.svg" style="width: 85%" ondblclick="handleAppOpen(this.parentNode.id)"> <div class="desktop-icon-text" ondblclick="handleAppOpen(this.parentNode.id)">Zane\'s Apps</div> </div> </div>',//Zane's Apps
+			'<div class="desktop-icon"> <div id="2048-icon" class="desktop-icon-inner"> <img src="/2048/icon.png" style="width: 85%" ondblclick="handleAppOpen(this.parentNode.id)"> <div class="desktop-icon-text" ondblclick="handleAppOpen(this.parentNode.id)">2048</div> </div> </div>'//2048
+		];
+		document.addEventListener('DOMContentLoaded', function() {
+			setTimeout(function() {
+				//document.getElementById('open-btn').style.display='inline-block';
+				document.getElementById('cover').style.opacity='0';
+				document.getElementById('cover').style.visibility='hidden';
+				document.querySelector('.notification').classList.remove('closed');
+			}, 2000);
+			setTimeout(function() {
+				document.querySelector('.notification').classList.add('closed');
+			}, 10000);
+		});
+
+		/****************
+		 * CONTEXT MENU *
+		*****************/
+
+		var ctxMenu = document.getElementById("contextmenu").style;
+		if (document.addEventListener) {
+		  document.addEventListener('contextmenu', function(e) {
+		    var posX = e.clientX;
+		    var posY = e.clientY;
+		    ctxMenuHandler(posX, posY);
+		    e.preventDefault();
+		  }, false);
+		  document.addEventListener('click', function(e) {
+		    ctxMenu.opacity = "0";
+		    setTimeout(function() {
+		      ctxMenu.visibility = "hidden";
+		    }, 200);
+		  }, false);
+		} else {
+		  document.attachEvent('oncontextmenu', function(e) {
+		    var posX = e.clientX;
+		    var posY = e.clientY;
+		    ctxMenuHandler(posX, posY);
+		    e.preventDefault();
+		  });
+		  document.attachEvent('onclick', function(e) {
+		    ctxMenu.opacity = "0";
+		    setTimeout(function() {
+		      ctxMenu.visibility = "hidden";
+		    }, 200);
+		  });
+		}
+
+		function ctxMenuHandler(x, y) {
+			if(x <= (window.innerWidth - 250)) {
+				//if not too close to right edge, display at mouse x
+				ctxMenu.left = x + "px";
+			} else {
+				//display at mouse x - 250
+				ctxMenu.left = (x-250) + "px";
+			}
+			if(y <= (window.innerHeight - 150)) {
+				//if not too close to bottom edge, display at mouse y
+				ctxMenu.top = y + "px";
+			} else {
+				//display at mouse y - 150
+				ctxMenu.top = (y-150) + "px";
+			}
+			ctxMenu.visibility = "visible";
+			ctxMenu.opacity = "1";
+		}
+
+		document.querySelectorAll('#contextmenu a').forEach(function(elem) {
+			elem.addEventListener('click', function(e) {
+				e.preventDefault();
+			});
+		});
+
+		/**************
+		 * START MENU *
+		***************/
+		
+		document.getElementById('starticon').addEventListener('click', function(e) {
+			document.getElementById('startmenu').classList.toggle('open');
+		});
+
+		/*****************
+		 * DATE AND TIME *
+		******************/
+
+		setInterval(function() {
+			var now = new Date();
+			var h = now.getHours(); 
+		    var m = now.getMinutes(); 
+		    var s = now.getSeconds(); 
+		    var mn = now.getMonth()+1;
+		    var d = now.getDate();
+		    var y = now.getFullYear();
+		    am_pm = "AM";
+		  
+		    if (h > 12) { 
+		        h -= 12; 
+		        am_pm = "PM"; 
+		    } 
+		    if (h == 0) { 
+		        hr = 12; 
+		        am_pm = "AM"; 
+		    } 
+		  
+		    //h = h < 10 ? "0" + h : h; 
+		    m = m < 10 ? "0" + m : m; 
+		    s = s < 10 ? "0" + s : s; 
+		  
+		    var currentTime = h + ":" + m + " " + am_pm;
+			document.getElementById('time').innerText=currentTime;
+			document.getElementById('date').innerText=mn+"/"+d+"/"+y;
+		}, 1000);
+
+		/***********************
+		 * DESKTOP ICON EVENTS *
+		************************/
+
+		/*new Sortable(document.getElementById('desktop-icon-container'), {
+			name: '.desktop-icon',
+			animation: 150,
+			ghostClass: 'blue-background-class'
+		});*/
+		document.querySelectorAll('.desktop-icon-inner').forEach(function(elem) {
+		  elem.addEventListener('click', function(e) {
+		  	document.querySelectorAll('.desktop-icon-inner').forEach(function(el) {
+			    el.classList.remove('selected');
+			});
+		    elem.classList.add('selected');
+		  });
+		  elem.addEventListener('dblclick', function(e) {
+		  	handleAppOpen(e.target.id);
+		  });
+		});
+		document.addEventListener('click', function(e) {
+			if(!e.target.closest('.desktop-icon-inner')) {
+				document.querySelectorAll('.desktop-icon-inner').forEach(function(elem) {
+				    elem.classList.remove('selected');
+				});
+			}
+		});
+
+		const desktopSelection = new SelectionArea({
+		    // All elements in this container can be selected
+		    selectables: ['.desktop-icon > .desktop-icon-inner'],
+		    // The container is also the boundary in this case
+		    boundaries: ['#desktop-wrapper']
+		}).on('start', ({store, event}) => {
+		    // Remove class if the user isn't pressing the control key or ⌘ key
+		    if (!event.ctrlKey && !event.metaKey) {
+		        // Unselect all elements
+		        for (const el of store.stored) {
+		            el.classList.remove('selected');
+		        }
+		        // Clear previous selection
+		        desktopSelection.clearSelection();
+		    }
+		}).on('move', ({store: {changed: {added, removed}}}) => {
+		    // Add a custom class to the elements that where selected.
+		    for (const el of added) {
+		        el.classList.add('selected');
+		    }
+		    // Remove the class from elements that where removed
+		    // since the last selection
+		    for (const el of removed) {
+		        el.classList.remove('selected');
+		    }
+		}).on('stop', () => {
+		    desktopSelection.keepSelection();
+		});
+
+		document.querySelectorAll('.desktop-app').forEach(function(elem) {
+			draggable(elem, '.desktop-app-top');
+			makeResizable(elem);
+		});
+
+		function closeAllWindows() {
+			document.querySelectorAll('.desktop-app').forEach(function(elem) {
+				elem.classList.add('closed');
+			});
+		}
+
+		document.querySelectorAll('.minmize').forEach(function(elem) {
+			elem.addEventListener('click', function(e) {
+				elem.parentNode.parentNode.classList.add('minimized');
+			});
+		});
+		document.querySelectorAll('.restore').forEach(function(elem) {
+			elem.addEventListener('click', function(e) {
+				elem.parentNode.parentNode.classList.toggle('fullscreen');
+			});
+		});
+		document.querySelectorAll('.exit').forEach(function(elem) {
+			elem.addEventListener('click', function(e) {
+				elem.parentNode.parentNode.classList.add('closed');
+			});
+		});
+
+		document.querySelectorAll('.desktop-icon-order li').forEach(function(elem) {
+			elem.addEventListener('click', function(e) {
+				//
+			});
+		});
+
+		/**************
+		 * FULLSCREEN *
+		***************/
+
+		function requestFullScreen(element) {
+		    // Supports most browsers and their versions.
+		    var requestMethod = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || element.msRequestFullScreen;
+
+		    if (requestMethod) { // Native full screen.
+		        requestMethod.call(element);
+		    } else if (typeof window.ActiveXObject !== "undefined") { // Older IE.
+		        var wscript = new ActiveXObject("WScript.Shell");
+		        if (wscript !== null) {
+		            wscript.SendKeys("{F11}");
+		        }
+		    }
+		}
+
+		function exitFullScreen(element) {
+			if (document.exitFullscreen) {
+			    document.exitFullscreen();
+			} else if (document.webkitExitFullscreen) { /* Safari */
+			    document.webkitExitFullscreen();
+			} else if (document.msExitFullscreen) { /* IE11 */
+			    document.msExitFullscreen();
+			}
+		}
+
+		/***************
+		 * APP HANDLER *
+		****************/
+
+		function handleAppOpen(appId) {
+			switch(appId) {
+				case 'google-icon':
+					/*document.getElementById('google-app').style.visibility='visible';
+					document.getElementById('google-app').classList.remove('closed');
+					document.getElementById('google-app').classList.remove('minimized');*/
+					var dw5 = document.innerWidth*0.5;
+					var dh4 = document.innerHeight*0.75;
+					open('https://www.google.com/search', dw5, dh4);
+					break;
+				case 'zane-icon':
+					document.getElementById('zane-app').classList.remove('closed');
+					document.getElementById('zane-app').classList.remove('minimized');
+					break;
+				case '2048-icon':
+					document.getElementById('2048-app').classList.remove('closed');
+					document.getElementById('2048-app').classList.remove('minimized');
+					break;
+				case 'display-settings-app':
+					document.getElementById('display-settings-app').classList.remove('closed');
+					document.getElementById('display-settings-app').classList.remove('minimized');
+					break;
+			}
+		}
+
+		/**************
+		 * UI HANDLER *
+		***************/
+
+		function draggable(elem, handle) {
+			var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+			if (handle) {
+				/* if present, the header is where you move the DIV from */
+				elem.querySelector(handle).onmousedown = dragMouseDown;
+			} else {
+				/* otherwise, move the DIV from anywhere inside the DIV */
+				elem.onmousedown = dragMouseDown;
+			}
+			function dragMouseDown(e) {
+			    e = e || window.event;
+			    e.preventDefault();
+			    // get the mouse cursor position at startup
+			    pos3 = e.clientX;
+			    pos4 = e.clientY;
+			    document.onmouseup = closeDragElement;
+			    // call a function whenever the cursor moves
+			    document.onmousemove = elementDrag;
+			}
+
+			function elementDrag(e) {
+			    e = e || window.event;
+			    e.preventDefault();
+			    // calculate the new cursor position:
+			    pos1 = pos3 - e.clientX;
+			    pos2 = pos4 - e.clientY;
+			    pos3 = e.clientX;
+			    pos4 = e.clientY;
+			    // set the element's new position
+			    elem.style.top = (elem.offsetTop - pos2) + "px";
+			    elem.style.left = (elem.offsetLeft - pos1) + "px";
+			}
+
+			function closeDragElement() {
+			    /* stop moving when mouse button is released */
+			    document.onmouseup = null;
+			    document.onmousemove = null;
+			}
+		}
+
+		function makeResizable(elem) {
+			// Query the element
+			//const ele = document.querySelector(elem);
+			const ele = elem;
+			// The current position of mouse
+			let x = 0;
+			let y = 0;
+			// The dimension of the element
+			let w = 0;
+			let h = 0;
+			// Handle the mousedown event
+			// that's triggered when user drags the resizer
+			const mouseDownHandler = function(e) {
+			    // Get the current mouse position
+			    x = e.clientX;
+			    y = e.clientY;
+			    // Calculate the dimension of element
+			    const styles = window.getComputedStyle(ele);
+			    w = parseInt(styles.width, 10);
+			    h = parseInt(styles.height, 10);
+
+			    // Attach the listeners to `document`
+			    document.addEventListener('mousemove', mouseMoveHandler);
+			    document.addEventListener('mouseup', mouseUpHandler);
+			};
+
+			 const mouseMoveHandler = function(e) {
+			    // How far the mouse has been moved
+			    const dx = e.clientX - x;
+			    const dy = e.clientY - y;
+			    // Adjust the dimension of element
+			    ele.style.width = `${w + dx}px`;
+			    ele.style.height = `${h + dy}px`;
+			};
+			const mouseUpHandler = function() {
+			    // Remove the handlers of `mousemove` and `mouseup`
+			    document.removeEventListener('mousemove', mouseMoveHandler);
+			    document.removeEventListener('mouseup', mouseUpHandler);
+			};
+
+			// Query all resizers
+			const resizers = ele.querySelectorAll('.resizer').forEach(function(resizer) {
+				resizer.addEventListener('mousedown', mouseDownHandler);
+			});
+		}
+
+		new Sortable(document.querySelector('.desktop-icon-order'), {
+		    animation: 150,
+		    ghostClass: 'placeholder-ghost'
+		});
+	</script>
+
+</body>
+</html>
